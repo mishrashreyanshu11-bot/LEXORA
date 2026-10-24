@@ -25,6 +25,12 @@ import {
   ShieldAlert,
   Menu,
   X,
+  Headphones,
+  Play,
+  Pause,
+  Square,
+  Volume2,
+  RotateCcw,
 } from 'lucide-react';
 
 interface ReaderViewProps {
@@ -82,10 +88,86 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
   const [reviewComment, setReviewComment] = useState('');
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
+  // Audiobook & Read-Aloud Studio State (Feature 8)
+  const [showAudioStudio, setShowAudioStudio] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [audioSpeed, setAudioSpeed] = useState<number>(1);
+  const [audioProgress, setAudioProgress] = useState<number>(0);
+  const synthRef = useRef<SpeechSynthesis | null>(typeof window !== 'undefined' ? window.speechSynthesis : null);
+
   const contentRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
 
   const currentPart = parts.find(p => p.partNumber === currentPartNumber) || parts[0];
+
+  const startAudio = (speed = audioSpeed) => {
+    if (!synthRef.current || !currentPart?.content) return;
+    synthRef.current.cancel();
+
+    const textToSpeak = `${currentPart.title}. ${currentPart.content.replace(/[\n\r]+/g, ' ')}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.rate = speed;
+    utterance.pitch = 1.0;
+
+    utterance.onboundary = (e) => {
+      if (textToSpeak.length > 0) {
+        const pct = Math.min(100, Math.max(0, Math.round((e.charIndex / textToSpeak.length) * 100)));
+        setAudioProgress(pct);
+      }
+    };
+
+    utterance.onend = () => {
+      setIsPlayingAudio(false);
+      setAudioProgress(100);
+    };
+
+    utterance.onerror = () => {
+      setIsPlayingAudio(false);
+    };
+
+    synthRef.current.speak(utterance);
+    setIsPlayingAudio(true);
+    setShowAudioStudio(true);
+  };
+
+  const togglePlayAudio = () => {
+    if (!synthRef.current) return;
+    if (isPlayingAudio) {
+      synthRef.current.pause();
+      setIsPlayingAudio(false);
+    } else {
+      if (synthRef.current.paused) {
+        synthRef.current.resume();
+        setIsPlayingAudio(true);
+      } else {
+        startAudio();
+      }
+    }
+  };
+
+  const stopAudio = () => {
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+    setIsPlayingAudio(false);
+    setAudioProgress(0);
+  };
+
+  const changeAudioSpeed = (speed: number) => {
+    setAudioSpeed(speed);
+    if (isPlayingAudio) {
+      startAudio(speed);
+    }
+  };
+
+  // Stop audio on chapter change or unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [currentPartNumber]);
 
   // Access check
   const access = checkPartAccess({
@@ -259,6 +341,22 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
               <Bookmark className={`w-5 h-5 ${currentPart && isBookmarked(currentPart.id) ? 'fill-current' : ''}`} />
             </button>
 
+            {/* Audiobook & Read-Aloud Studio Toggle */}
+            <button
+              onClick={() => {
+                setShowAudioStudio(!showAudioStudio);
+                if (!showAudioStudio && !isPlayingAudio) {
+                  startAudio();
+                }
+              }}
+              className={`p-2 rounded-xl hover:bg-slate-500/10 transition-colors cursor-pointer ${
+                showAudioStudio || isPlayingAudio ? 'text-[#26F7F7] bg-[#26F7F7]/10 ring-1 ring-[#26F7F7]/40' : ''
+              }`}
+              title="Audiobook & Read-Aloud Studio (TTS Narration)"
+            >
+              <Headphones className="w-5 h-5" />
+            </button>
+
             {/* Reading Settings Toggle */}
             <button
               onClick={() => setShowSettings(!showSettings)}
@@ -271,6 +369,88 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Audiobook & Read-Aloud Studio Player Bar (Feature 8) */}
+        {showAudioStudio && (
+          <div className={`border-t px-4 py-3 max-w-3xl mx-auto shadow-md animate-fade-in ${
+            isDark ? 'bg-slate-900 border-slate-800 text-white' : 'bg-slate-950 text-white border-slate-800'
+          }`}>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                {/* Play/Pause Button */}
+                <button
+                  onClick={togglePlayAudio}
+                  className="w-9 h-9 rounded-full bg-[#26F7F7] text-slate-950 hover:bg-[#00d4d4] flex items-center justify-center transition-all cursor-pointer shadow-sm shrink-0"
+                  title={isPlayingAudio ? 'Pause Narration' : 'Resume Narration'}
+                >
+                  {isPlayingAudio ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                </button>
+
+                {/* Stop / Reset */}
+                <button
+                  onClick={stopAudio}
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 transition-colors cursor-pointer shrink-0"
+                  title="Stop"
+                >
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                </button>
+
+                <div className="overflow-hidden min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#26F7F7] animate-pulse" />
+                    <span className="text-[11px] font-bold text-[#26F7F7] uppercase tracking-wider">Audiobook Studio</span>
+                  </div>
+                  <p className="text-xs text-slate-300 truncate font-medium">
+                    Part {currentPart?.partNumber}: {currentPart?.title}
+                  </p>
+                </div>
+              </div>
+
+              {/* Playback Speed Controls & Close */}
+              <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
+                <div className="flex items-center gap-1 bg-white/10 p-1 rounded-xl text-[11px]">
+                  {[0.75, 1, 1.25, 1.5].map((speed) => (
+                    <button
+                      key={speed}
+                      onClick={() => changeAudioSpeed(speed)}
+                      className={`px-2 py-0.5 rounded-lg font-mono font-bold transition-all cursor-pointer ${
+                        audioSpeed === speed
+                          ? 'bg-[#26F7F7] text-slate-950 shadow-xs'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      {speed}x
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {audioProgress}%
+                  </span>
+                  <button
+                    onClick={() => {
+                      stopAudio();
+                      setShowAudioStudio(false);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    title="Close Audiobook Studio"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Audio Progress Line */}
+            <div className="w-full bg-white/10 h-1 rounded-full mt-2.5 overflow-hidden">
+              <div
+                className="bg-[#26F7F7] h-full transition-all duration-200"
+                style={{ width: `${audioProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Reader Settings Drawer/Panel */}
         {showSettings && (
@@ -443,7 +623,7 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
             <div className="space-y-2 max-w-md mx-auto">
               <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-[#26F7F7]/15 text-[#26F7F7] text-xs font-semibold border border-[#26F7F7]/40">
                 <Sparkles className="w-3.5 h-3.5" />
-                Vellum Premium Story
+                LEXORA Premium Story
               </span>
               <h3 className="text-2xl font-bold font-sans-modern">
                 This story has reached exceptional reader demand and recognition.
@@ -480,13 +660,13 @@ export const ReaderView: React.FC<ReaderViewProps> = ({
                 </button>
               </div>
 
-              {/* Option 2: Vellum Premium for ₹299/mo */}
+              {/* Option 2: LEXORA Premium for ₹299/mo */}
               <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-950/40 to-slate-900 border border-[#26F7F7]/40 hover:border-[#26F7F7] transition-all space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs uppercase font-semibold text-[#26F7F7]">All Access</span>
                   <span className="text-lg font-bold font-mono text-white">₹{settings.monthlySubscriptionPrice || 299}/mo</span>
                 </div>
-                <h4 className="font-bold text-white text-sm">Vellum Premium</h4>
+                <h4 className="font-bold text-white text-sm">LEXORA Premium</h4>
                 <p className="text-[11px] text-slate-300">
                   Unlimited access to all premium stories, exclusive badge, community access & direct writer notes.
                 </p>

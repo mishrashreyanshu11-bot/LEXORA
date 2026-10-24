@@ -76,7 +76,7 @@ export const StoryDetailView: React.FC<StoryDetailViewProps> = ({
     if (navigator.share) {
       navigator.share({
         title: story.title,
-        text: `Read "${story.title}" on Vellum`,
+        text: `Read "${story.title}" on LEXORA`,
         url: window.location.href,
       }).catch(() => {});
     } else {
@@ -509,7 +509,7 @@ export const StoryDetailView: React.FC<StoryDetailViewProps> = ({
                 <CheckCircle className="w-10 h-10 text-teal-600 mx-auto" />
                 <h4 className="font-bold">Report Submitted</h4>
                 <p className="text-xs text-slate-500">
-                  Our moderation team and the Founder have been notified. Thank you for protecting Vellum’s community.
+                  Our moderation team and the Founder have been notified. Thank you for protecting LEXORA’s community.
                 </p>
               </div>
             ) : (

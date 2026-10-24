@@ -18,6 +18,10 @@ import { AuthModal } from './components/auth/AuthModal';
 import { LegalModal } from './components/legal/LegalModal';
 import { NotificationDrawer } from './components/notifications/NotificationDrawer';
 import { IntroModal } from './components/common/IntroModal';
+import { ChallengeArenaView } from './components/challenge/ChallengeArenaView';
+import { PremiumHubView } from './components/premium/PremiumHubView';
+import { InkVaultModal } from './components/inkvault/InkVaultModal';
+import { WinnerCertificateModal } from './components/challenge/WinnerCertificateModal';
 import { Story } from './types';
 
 type AppScreen =
@@ -30,11 +34,13 @@ type AppScreen =
   | 'reader'
   | 'editor'
   | 'admin'
-  | 'writer_profile';
+  | 'writer_profile'
+  | 'arena'
+  | 'premium';
 
 const MainAppContent: React.FC = () => {
   const { currentUser, isFounder } = useAuth();
-  const { stories } = useStories();
+  const { stories, certificates } = useStories();
 
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('home');
   const [selectedStoryId, setSelectedStoryId] = useState<string>('story_atomic_habits');
@@ -49,6 +55,8 @@ const MainAppContent: React.FC = () => {
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false);
   const [introModalOpen, setIntroModalOpen] = useState(true);
+  const [inkVaultModalOpen, setInkVaultModalOpen] = useState(false);
+  const [certificateModalOpen, setCertificateModalOpen] = useState(false);
 
   const selectedStory = stories.find(s => s.id === selectedStoryId) || stories[0];
 
@@ -93,6 +101,15 @@ const MainAppContent: React.FC = () => {
           onOpenUpgradeModal={handleOpenUpgrade}
           onOpenProfile={() => setCurrentScreen('profile')}
           onOpenIntro={() => setIntroModalOpen(true)}
+          onOpenArena={() => {
+            setCurrentScreen('arena');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenInkVault={() => setInkVaultModalOpen(true)}
+          onOpenPremiumHub={() => {
+            setCurrentScreen('premium');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       )}
 
@@ -106,6 +123,11 @@ const MainAppContent: React.FC = () => {
             onOpenUpgradeModal={handleOpenUpgrade}
             onOpenAdminDashboard={() => setCurrentScreen('admin')}
             onOpenCreateStory={() => setCurrentScreen('editor')}
+            onOpenArena={() => {
+              setCurrentScreen('arena');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenCertificateModal={() => setCertificateModalOpen(true)}
           />
         )}
 
@@ -136,6 +158,27 @@ const MainAppContent: React.FC = () => {
             onOpenAdmin={() => setCurrentScreen('admin')}
             onOpenUpgradeModal={handleOpenUpgrade}
             onOpenLegal={() => setLegalModalOpen(true)}
+            onSelectStory={handleSelectStory}
+          />
+        )}
+
+        {currentScreen === 'arena' && (
+          <ChallengeArenaView
+            onSelectStory={handleSelectStory}
+            onReadPart={(storyId, partNum) => handleReadPart(storyId, partNum)}
+            onOpenCreateStory={() => setCurrentScreen('editor')}
+          />
+        )}
+
+        {currentScreen === 'premium' && (
+          <PremiumHubView
+            onOpenUpgradeModal={handleOpenUpgrade}
+            onOpenEditor={() => setCurrentScreen('editor')}
+            onOpenArena={() => {
+              setCurrentScreen('arena');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenInkVault={() => setInkVaultModalOpen(true)}
             onSelectStory={handleSelectStory}
           />
         )}
@@ -188,11 +231,13 @@ const MainAppContent: React.FC = () => {
       {/* Global Bottom Navigation (Visible on main tabs) */}
       {(currentScreen === 'home' ||
         currentScreen === 'discover' ||
+        currentScreen === 'arena' ||
         currentScreen === 'community' ||
         currentScreen === 'library' ||
-        currentScreen === 'profile') && (
+        currentScreen === 'profile' ||
+        currentScreen === 'premium') && (
         <BottomNav
-          currentTab={currentScreen as any}
+          currentTab={currentScreen === 'premium' ? 'profile' : currentScreen as any}
           onChangeTab={(tab) => {
             setCurrentScreen(tab);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -239,6 +284,24 @@ const MainAppContent: React.FC = () => {
       <IntroModal
         isOpen={introModalOpen}
         onClose={() => setIntroModalOpen(false)}
+      />
+
+      {/* InkVault Encrypted Manuscript Storage Modal */}
+      <InkVaultModal
+        isOpen={inkVaultModalOpen}
+        onClose={() => setInkVaultModalOpen(false)}
+        onOpenEditor={() => {
+          setInkVaultModalOpen(false);
+          setCurrentScreen('editor');
+        }}
+      />
+
+      {/* Champion Certificate Modal */}
+      <WinnerCertificateModal
+        isOpen={certificateModalOpen}
+        onClose={() => setCertificateModalOpen(false)}
+        certificate={certificates[0] || null}
+        storyTitle="The Chronosphere of Florence"
       />
     </div>
   );

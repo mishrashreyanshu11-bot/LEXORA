@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useStories } from '../../context/StoryContext';
 import { isStoryPremium } from '../../utils/premiumRules';
+import { LISTING_CATEGORIES } from '../../types';
 import { Search, Filter, Star, BookOpen, Sparkles, CheckCircle } from 'lucide-react';
 
 interface DiscoverPageProps {
@@ -20,8 +21,6 @@ export const DiscoverPage: React.FC<DiscoverPageProps> = ({
     'all' | 'highest_rated' | 'most_read' | 'newest' | 'free' | 'premium' | 'completed' | 'ongoing'
   >('all');
 
-  const categories = ['All', 'Fiction', 'Mystery', 'Speculative Fiction', 'Non-Fiction', 'Poetry & Short Form'];
-
   // Filtering logic
   const filteredStories = stories.filter(story => {
     // Search Query
@@ -40,8 +39,10 @@ export const DiscoverPage: React.FC<DiscoverPageProps> = ({
     }
 
     // Category
-    if (selectedCategory !== 'All' && story.category !== selectedCategory) {
-      return false;
+    if (selectedCategory !== 'All') {
+      const catLower = selectedCategory.toLowerCase();
+      const matchCat = story.category.toLowerCase() === catLower || story.tags.some(t => t.toLowerCase() === catLower);
+      if (!matchCat) return false;
     }
 
     // Filter Type
@@ -95,21 +96,35 @@ export const DiscoverPage: React.FC<DiscoverPageProps> = ({
             />
           </div>
 
-          {/* Categories */}
-          <div className="flex gap-2 overflow-x-auto pb-1 text-xs font-semibold scrollbar-none">
-            {categories.map(c => (
-              <button
-                key={c}
-                onClick={() => setSelectedCategory(c)}
-                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                  selectedCategory === c
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {c}
-              </button>
-            ))}
+          {/* Categories matching IMG_6032_e62ea990.jpeg */}
+          <div className="flex gap-2 overflow-x-auto pb-2 text-xs font-medium scrollbar-none">
+            <button
+              onClick={() => setSelectedCategory('All')}
+              className={`px-4 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap border text-xs ${
+                selectedCategory === 'All'
+                  ? 'bg-slate-950 text-white border-slate-950 shadow-xs'
+                  : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50'
+              }`}
+            >
+              All Categories
+            </button>
+            {LISTING_CATEGORIES.map(cat => {
+              const isSelected = selectedCategory === cat.name;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition-all cursor-pointer whitespace-nowrap border text-xs ${
+                    isSelected
+                      ? 'bg-slate-950 text-white border-slate-950 shadow-xs scale-105'
+                      : 'bg-white text-slate-700 border-slate-200/90 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{cat.name}</span>
+                  <span className="text-sm select-none">{cat.emoji}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Filters Bar */}

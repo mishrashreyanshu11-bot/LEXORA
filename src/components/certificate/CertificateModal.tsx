@@ -18,8 +18,8 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: `Vellum Writer Certificate - ${certificate.writerName}`,
-        text: `Officially recognized as a Vellum Certified Serialized Author with ${certificate.qualifyingStoriesCount} completed stories and ${certificate.averageRating} average rating.`,
+        title: `LEXORA Writer Certificate - ${certificate.writerName}`,
+        text: `Officially recognized as a LEXORA Certified Serialized Author with ${certificate.qualifyingStoriesCount} completed stories and ${certificate.averageRating} average rating.`,
         url: window.location.href,
       }).catch(() => {});
     } else {
@@ -42,7 +42,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         <div className="p-8 md:p-12 bg-[#fcfbf9] text-slate-900 border-8 border-double border-[#26F7F7]/60 relative selection:bg-[#26F7F7]/20">
           {/* Subtle watermark background */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
-            <span className="text-[120px] font-black font-serif">VELLUM</span>
+            <span className="text-[120px] font-black font-serif">LEXORA</span>
           </div>
 
           <div className="relative text-center space-y-6">
@@ -53,7 +53,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 <span>Official Digital Credential</span>
               </div>
               <h2 className="text-3xl md:text-4xl font-extrabold font-serif tracking-tight text-slate-950 pt-2">
-                Off Script / Vellum Writer Certificate
+                Off Script / LEXORA Writer Certificate
               </h2>
               <p className="text-xs uppercase tracking-widest text-slate-500 font-sans-modern">
                 Excellence in Serialized Literature &amp; Reader Acclaim
@@ -72,7 +72,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             {/* Criteria Statement */}
             <p className="text-xs md:text-sm text-slate-700 max-w-lg mx-auto leading-relaxed font-editorial">
               Having successfully completed <strong className="text-slate-950">{certificate.qualifyingStoriesCount} serialized works</strong> on
-              Vellum while maintaining a stellar community rating average of <strong className="text-teal-700">★ {certificate.averageRating} / 5.0</strong>.
+              LEXORA while maintaining a stellar community rating average of <strong className="text-teal-700">★ {certificate.averageRating} / 5.0</strong>.
               Conferred with full honors as a Master Storyteller.
             </p>
 
@@ -85,7 +85,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 </div>
                 <p className="text-[11px] font-bold text-slate-800">Shreyanshu Mishra</p>
                 <p className="text-[10px] text-teal-700 uppercase tracking-wider font-semibold">
-                  Founder, Vellum
+                  Founder, LEXORA
                 </p>
               </div>
 

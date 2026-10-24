@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStories } from '../../context/StoryContext';
+import { DEFAULT_AVATAR } from '../../types';
 import { FounderBadge, VerifiedBadge } from '../common/FounderBadge';
 import {
   User as UserIcon,
@@ -16,6 +17,10 @@ import {
   Bookmark,
   CheckCircle,
   ExternalLink,
+  Camera,
+  Upload,
+  RotateCcw,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 interface UserProfileViewProps {
@@ -38,16 +43,36 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   const [bioInput, setBioInput] = useState(currentUser?.bio || '');
   const [displayNameInput, setDisplayNameInput] = useState(currentUser?.displayName || '');
   const [twitterInput, setTwitterInput] = useState(currentUser?.socialLinks?.twitter || '');
+  const [avatarInput, setAvatarInput] = useState(currentUser?.avatar || DEFAULT_AVATAR);
+  const [showAvatarUrlInput, setShowAvatarUrlInput] = useState(false);
+  const [avatarUrlText, setAvatarUrlText] = useState('');
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
 
   if (!currentUser) return null;
 
   const purchasedStories = stories.filter(s => purchasedStoryIds.includes(s.id));
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const newAvatar = event.target.result as string;
+          setAvatarInput(newAvatar);
+          updateProfile({ avatar: newAvatar });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     updateProfile({
       displayName: displayNameInput.trim() || currentUser.displayName,
       bio: bioInput.trim(),
+      avatar: avatarInput.trim() || DEFAULT_AVATAR,
       socialLinks: {
         ...currentUser.socialLinks,
         twitter: twitterInput.trim() || undefined,
@@ -58,16 +83,35 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-28">
+      {/* Hidden file input for fast avatar change */}
+      <input
+        type="file"
+        ref={avatarFileInputRef}
+        onChange={handleAvatarFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+
       {/* Header Profile Card */}
       <div className="bg-white border-b border-slate-200 py-8 px-4">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.displayName}
-                className="w-20 h-20 rounded-full object-cover ring-4 ring-[#26F7F7]/40 shadow-md"
-              />
+              <div className="relative group">
+                <img
+                  src={currentUser.avatar || DEFAULT_AVATAR}
+                  alt={currentUser.displayName}
+                  className="w-20 h-20 rounded-full object-cover ring-4 ring-[#26F7F7]/40 shadow-md bg-slate-950"
+                />
+                <button
+                  type="button"
+                  onClick={() => avatarFileInputRef.current?.click()}
+                  title="Change profile picture"
+                  className="absolute bottom-0 right-0 p-1.5 rounded-full bg-slate-900 text-white shadow-md hover:bg-slate-800 hover:scale-110 transition-all cursor-pointer border border-white"
+                >
+                  <Camera className="w-3.5 h-3.5 text-[#26f7db]" />
+                </button>
+              </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl font-extrabold text-slate-900 font-sans-modern tracking-tight">
@@ -180,7 +224,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
         <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-base text-slate-900">Vellum Premium Subscription</h3>
+              <h3 className="font-bold text-base text-slate-900">LEXORA Premium Subscription</h3>
               <p className="text-xs text-slate-500">
                 {currentUser.isPremiumSubscriber
                   ? 'Unlimited reading access across all premium serialized titles.'
@@ -197,7 +241,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           {!currentUser.isPremiumSubscriber ? (
             <div className="p-4 rounded-2xl bg-teal-50/50 border border-[#26F7F7]/50 flex items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <p className="font-bold text-sm text-teal-950">Vellum Premium — ₹299/month</p>
+                <p className="font-bold text-sm text-teal-950">LEXORA Premium — ₹299/month</p>
                 <p className="text-xs text-slate-600">
                   Includes full access to every premium serial, author suggestions, and verified member badge.
                 </p>
@@ -279,6 +323,88 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
             <h3 className="font-bold text-base">Edit Profile Information</h3>
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
+              {/* Profile Picture Setting */}
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/90 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-900">Profile Picture</label>
+                  <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                    {avatarInput === DEFAULT_AVATAR ? 'Default Chalk Avatar' : 'Custom Photo'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <img
+                    src={avatarInput || DEFAULT_AVATAR}
+                    alt="Preview avatar"
+                    className="w-14 h-14 rounded-full object-cover ring-2 ring-[#26f7db] shadow-xs shrink-0 bg-slate-950"
+                  />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => avatarFileInputRef.current?.click()}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <Upload className="w-3 h-3 text-teal-600" />
+                        <span>Upload Photo</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowAvatarUrlInput(!showAvatarUrlInput)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <ImageIcon className="w-3 h-3 text-slate-500" />
+                        <span>Link</span>
+                      </button>
+
+                      {avatarInput !== DEFAULT_AVATAR && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAvatarInput(DEFAULT_AVATAR);
+                            setAvatarUrlText('');
+                          }}
+                          className="px-2 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Reset to default avatar"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Reset Default</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      Upload from your device, paste an image link, or reset to the official default silhouette.
+                    </p>
+                  </div>
+                </div>
+
+                {showAvatarUrlInput && (
+                  <div className="flex gap-2 pt-1">
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={avatarUrlText}
+                      onChange={e => setAvatarUrlText(e.target.value)}
+                      className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (avatarUrlText.trim()) {
+                          setAvatarInput(avatarUrlText.trim());
+                          setShowAvatarUrlInput(false);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-1">
                 <label className="font-semibold text-slate-700">Display Name</label>
                 <input

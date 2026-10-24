@@ -122,7 +122,7 @@ export function checkPartAccess(params: {
     };
   }
 
-  // 5. Active Vellum Premium subscription (₹299/month)
+  // 5. Active LEXORA Premium subscription (₹299/month)
   if (user && user.isPremiumSubscriber) {
     return {
       canAccess: true,
@@ -157,7 +157,7 @@ export function checkPartAccess(params: {
 }
 
 /**
- * Checks if a writer qualifies for the Vellum Writer Certificate:
+ * Checks if a writer qualifies for the LEXORA Writer Certificate:
  * - Completed at least 20 stories
  * - Average rating >= 4.0 across qualifying stories
  */

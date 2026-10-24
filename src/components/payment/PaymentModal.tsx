@@ -35,8 +35,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     : (settings.storyUnlockPrice || 19);
 
   const destinationUpi = settings.paymentDestinationUpi || '7852931077@fam';
-  const upiLink = `upi://pay?pa=${destinationUpi}&pn=Vellum%20Platform&am=${amount}&cu=INR&tn=${encodeURIComponent(
-    productType === 'monthly_subscription' ? 'Vellum Premium Monthly' : `Vellum Story: ${story?.title || 'Unlock'}`
+  const upiLink = `upi://pay?pa=${destinationUpi}&pn=LEXORA%20Platform&am=${amount}&cu=INR&tn=${encodeURIComponent(
+    productType === 'monthly_subscription' ? 'LEXORA Premium Monthly' : `LEXORA Story: ${story?.title || 'Unlock'}`
   )}`;
 
   const copyUpiId = () => {
@@ -86,11 +86,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#26F7F7]/20 border border-[#26F7F7]/40 text-[#26F7F7] text-xs font-semibold">
               <Sparkles className="w-3 h-3" />
-              {productType === 'monthly_subscription' ? 'Vellum Premium Access' : 'Permanent Story Unlock'}
+              {productType === 'monthly_subscription' ? 'LEXORA Premium Access' : 'Permanent Story Unlock'}
             </div>
             <h3 className="text-xl font-bold font-sans-modern tracking-tight">
               {productType === 'monthly_subscription'
-                ? `Vellum Premium — ₹${amount}/month`
+                ? `LEXORA Premium — ₹${amount}/month`
                 : `Unlock "${story?.title}" — ₹${amount}`}
             </h3>
             <p className="text-xs text-slate-300">
@@ -117,7 +117,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <h4 className="text-xl font-bold text-slate-900">Payment Verified & Access Granted!</h4>
                 <p className="text-slate-600 text-xs">
                   {productType === 'monthly_subscription'
-                    ? 'You now have unlimited reading access to all premium serialized stories on Vellum.'
+                    ? 'You now have unlimited reading access to all premium serialized stories on LEXORA.'
                     : `You have permanently unlocked all current and future chapters of "${story?.title}".`}
                 </p>
               </div>
@@ -182,7 +182,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <ul className="text-xs text-slate-700 space-y-1.5 list-disc list-inside">
                   {productType === 'monthly_subscription' ? (
                     <>
-                      <li>Full, unlimited access to <strong>all Premium Stories</strong> on Vellum.</li>
+                      <li>Full, unlimited access to <strong>all Premium Stories</strong> on LEXORA.</li>
                       <li>No need to pay ₹19 per individual story.</li>
                       <li>Verified insider access and community discussion circle privileges.</li>
                       <li>Ability to submit constructive editorial suggestions to writers.</li>
@@ -230,7 +230,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                       <CreditCard className="w-3.5 h-3.5" />
                       Open UPI App (GPay / PhonePe / Paytm / Fam)
                     </a>
-                    <span className="text-[11px] text-slate-400">Merchant: Vellum</span>
+                    <span className="text-[11px] text-slate-400">Merchant: LEXORA</span>
                   </div>
                 </div>
               </div>

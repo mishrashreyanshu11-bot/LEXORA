@@ -37,10 +37,10 @@ export const WriterProfileView: React.FC<WriterProfileViewProps> = ({
 
   const writer: User = allUsers.find(u => u.id === writerId) || {
     id: writerId,
-    email: 'writer@vellum.read',
-    displayName: 'Vellum Author',
+    email: 'writer@lexora.read',
+    displayName: 'LEXORA Author',
     username: 'author',
-    bio: 'Independent storyteller on Vellum.',
+    bio: 'Independent storyteller on LEXORA.',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
     role: 'writer',
     isVerified: true,
@@ -198,7 +198,7 @@ export const WriterProfileView: React.FC<WriterProfileViewProps> = ({
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#26F7F7]/15 text-[#26F7F7] text-[10px] font-bold uppercase tracking-wider">
                   <Sparkles className="w-3 h-3" />
-                  <span>Vellum Certified Master Writer</span>
+                  <span>LEXORA Certified Master Writer</span>
                 </div>
                 <h3 className="text-lg font-bold font-sans-modern">
                   Official Writer Certificate Conferred

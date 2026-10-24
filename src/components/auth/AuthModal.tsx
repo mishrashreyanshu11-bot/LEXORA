@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { DEFAULT_AVATAR } from '../../types';
 import { FounderBadge } from '../common/FounderBadge';
-import { X, Sparkles, UserCheck, ShieldCheck, ArrowRight, UserPlus, LogIn, KeyRound } from 'lucide-react';
+import { X, Sparkles, UserCheck, ShieldCheck, ArrowRight, UserPlus, LogIn, KeyRound, Upload, Image as ImageIcon, RotateCcw } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -26,6 +27,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [displayName, setDisplayName] = useState('');
   const [dob, setDob] = useState(''); // MANDATORY
   const [bio, setBio] = useState('');
+  const [avatar, setAvatar] = useState<string>(''); // If empty, will default to DEFAULT_AVATAR
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [avatarUrlInput, setAvatarUrlInput] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -45,6 +50,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image file must be under 5MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setAvatar(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !email.trim() || !dob) {
@@ -58,6 +80,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       displayName: displayName.trim() || username,
       dob,
       bio,
+      avatar: avatar.trim() || DEFAULT_AVATAR,
     });
 
     if (res.success) {
@@ -82,11 +105,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <div className="space-y-1">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#26f7db]">
-                Vellum Authentication
+                LEXORA Authentication
               </span>
             </div>
             <h3 className="text-xl font-bold font-sans-modern tracking-tight">
-              {mode === 'login' ? 'Sign in to Vellum' : 'Create Your Reader & Writer Account'}
+              {mode === 'login' ? 'Sign in to LEXORA' : 'Create Your Reader & Writer Account'}
             </h3>
             <p className="text-xs text-slate-300">
               {mode === 'login'
@@ -232,6 +255,98 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   onChange={e => setBio(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-300"
                 />
+              </div>
+
+              {/* Profile Picture (User chooses or skips for default) */}
+              <div className="space-y-2 p-3 rounded-2xl bg-slate-50 border border-slate-200/90">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-900 text-xs">Profile Picture</label>
+                  <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                    {avatar ? 'Custom Photo' : 'Default Avatar Assigned'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <img
+                    src={avatar || DEFAULT_AVATAR}
+                    alt="Avatar preview"
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-[#26f7db] shadow-xs shrink-0 bg-slate-950"
+                  />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <Upload className="w-3 h-3 text-teal-600" />
+                        <span>Choose Photo</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowUrlInput(!showUrlInput)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 text-[11px] font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <ImageIcon className="w-3 h-3 text-slate-500" />
+                        <span>URL</span>
+                      </button>
+
+                      {avatar && avatar !== DEFAULT_AVATAR && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAvatar('');
+                            setAvatarUrlInput('');
+                          }}
+                          className="px-2 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Reset to default avatar"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Reset</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      {avatar && avatar !== DEFAULT_AVATAR
+                        ? 'Custom photo chosen. You can also change this later.'
+                        : 'Skip to use the default silhouette avatar (can be changed anytime later).'}
+                    </p>
+                  </div>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {showUrlInput && (
+                  <div className="flex gap-2 pt-1">
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={avatarUrlInput}
+                      onChange={e => setAvatarUrlInput(e.target.value)}
+                      className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (avatarUrlInput.trim()) {
+                          setAvatar(avatarUrlInput.trim());
+                          setShowUrlInput(false);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button

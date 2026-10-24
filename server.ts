@@ -79,7 +79,7 @@ loadDb();
 // -----------------------------------------------------------------------------
 
 app.get('/api/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', brand: 'Vellum', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', brand: 'LEXORA', timestamp: new Date().toISOString() });
 });
 
 // Admin Settings
@@ -106,8 +106,8 @@ app.post('/api/ai/assess', async (req: Request, res: Response) => {
 
   if (geminiAi && process.env.GEMINI_API_KEY) {
     try {
-      const prompt = `You are the lead literary editor and editorial safety auditor for "Vellum", an elite serialized reading and publishing platform.
-Analyze the following literary draft submitted by a writer.
+      const prompt = `You are the lead literary editor and AI integrity auditor for "LEXORA — Beyond the Loop", founded by CEO Shreyanshu Mishra.
+Analyze the following literary draft submitted by an author.
 
 Story Title: ${title || 'Untitled'}
 Category/Genre: ${category || ''} / ${genre || ''}
@@ -118,18 +118,33 @@ Content sample to analyze:
 ${sample}
 """
 
-Evaluate this content carefully and objectively.
-Note: You must NOT claim AI detection is 100% accurate. Provide a nuanced editorial assessment.
-Return a STRICT JSON object in this exact schema with no extra markdown wrapping:
+Evaluate this content with the highest literary editorial standards.
+CRITICAL INTEGRITY RULE:
+Calculate the exact "aiWritingRate" as a percentage from 0 to 100.
+If aiWritingRate is 85% or higher, the piece MUST be flagged as disqualified from official competitions and monetization.
+
+Return a STRICT JSON object in this exact schema with no markdown wrapping:
 {
   "indication": "Low indication of AI assistance" | "Possible AI assistance" | "High indication of AI assistance",
   "confidenceScore": number from 50 to 98,
   "spamScore": number from 0 to 100 (where 0 is pristine original literature),
-  "originalityScore": number from 40 to 99,
+  "originalityScore": number from 20 to 99,
+  "aiWritingRate": number from 0 to 100,
+  "isDisqualified": boolean (true if aiWritingRate >= 85),
+  "disqualificationReason": string or null,
   "potentialPlagiarismConcern": boolean,
   "unsafeOrProhibitedContent": boolean,
-  "flags": string[] (2-4 key observations like "Rich sensory prose", "Natural syntactic variability", "Formally structured dialogue", or concerns),
-  "editorialFeedback": string (2-3 sentences of constructive editorial observations on voice, pacing, and tone)
+  "flags": string[] (2-4 key observations on craft, cadence, and texture),
+  "editorialFeedback": string (2-3 sentences of constructive editorial observations on voice, pacing, and tone),
+  "aiCorrections": [
+    {
+      "id": "corr_1",
+      "originalText": "string snippet from content",
+      "correctedText": "refined, evocative humanized alternative preserving author's voice",
+      "explanation": "why this strengthens rhythm or preserves originality",
+      "category": "preserve_voice" | "prose_flow" | "grammar" | "rhyme_meter"
+    }
+  ]
 }`;
 
       const aiResponse = await geminiAi.models.generateContent({
@@ -142,7 +157,7 @@ Return a STRICT JSON object in this exact schema with no extra markdown wrapping
       });
 
       const text = aiResponse.text?.trim() || '';
-      let parsed = null;
+      let parsed: any = null;
       try {
         parsed = JSON.parse(text);
       } catch (err) {
@@ -150,15 +165,24 @@ Return a STRICT JSON object in this exact schema with no extra markdown wrapping
         parsed = JSON.parse(cleaned);
       }
 
+      const aiWritingRate = Math.min(100, Math.max(0, Number(parsed.aiWritingRate) || 8));
+      const isDisqualified = aiWritingRate >= 85;
+
       const result = {
-        indication: parsed.indication || 'Low indication of AI assistance',
-        confidenceScore: Number(parsed.confidenceScore) || 85,
-        spamScore: Number(parsed.spamScore) || 2,
-        originalityScore: Number(parsed.originalityScore) || 92,
+        indication: parsed.indication || (aiWritingRate >= 85 ? 'High indication of AI assistance' : 'Low indication of AI assistance'),
+        confidenceScore: Number(parsed.confidenceScore) || 91,
+        spamScore: Number(parsed.spamScore) || 1,
+        originalityScore: Number(parsed.originalityScore) || (100 - aiWritingRate),
+        aiWritingRate,
+        isDisqualified,
+        disqualificationReason: isDisqualified
+          ? (parsed.disqualificationReason || `⚠️ Disqualified: AI writing rate reached ${aiWritingRate}%, exceeding the 85% platform threshold. LEXORA requires authentic human creative voice.`)
+          : undefined,
         potentialPlagiarismConcern: Boolean(parsed.potentialPlagiarismConcern),
         unsafeOrProhibitedContent: Boolean(parsed.unsafeOrProhibitedContent),
-        flags: Array.isArray(parsed.flags) ? parsed.flags : ['Natural syntactic rhythm', 'Original phrasing'],
-        editorialFeedback: parsed.editorialFeedback || 'High quality narrative flow with strong sensory texture.',
+        flags: Array.isArray(parsed.flags) ? parsed.flags : ['Organic syntactic rhythm', 'Unique narrative texture'],
+        editorialFeedback: parsed.editorialFeedback || 'Evocative imagery and cohesive thematic tension.',
+        aiCorrections: Array.isArray(parsed.aiCorrections) ? parsed.aiCorrections : [],
         analyzedAt: new Date().toISOString(),
       };
 
@@ -177,23 +201,54 @@ Return a STRICT JSON object in this exact schema with no extra markdown wrapping
   const sentenceCount = (sample.match(/[.!?]+/g) || []).length || 1;
   const avgWordsPerSentence = wordCount / sentenceCount;
   
-  // Heuristic signals
-  const hasSensoryWords = /whisper|drizzle|rust|emerald|parchment|sapphire|siphon|mist|scent|crushed|verdigris|porcelain|shadow/i.test(sample);
-  const indication = avgWordsPerSentence > 12 && hasSensoryWords ? 'Low indication of AI assistance' : 'Possible AI assistance';
+  // Check for repetitive synthetic transitions common in AI output
+  const aiTransitionMatches = (sample.match(/\b(moreover|furthermore|in conclusion|delve|testament to|beacon of|tapestry of|vital role|crucial aspect)\b/gi) || []).length;
+  const hasSensoryWords = /whisper|drizzle|rust|emerald|parchment|sapphire|siphon|mist|scent|crushed|verdigris|porcelain|shadow|ember|salt|timber/i.test(sample);
+  
+  // Calculate simulated rate
+  let aiRate = Math.min(95, Math.max(3, Math.round((aiTransitionMatches * 14) + (avgWordsPerSentence > 28 ? 20 : 0))));
+  if (hasSensoryWords) aiRate = Math.max(3, aiRate - 25);
+  
+  // Trigger disqualification if test content clearly exceeds 85%
+  const isDisqualified = aiRate >= 85;
+
+  const sampleSnippets = sample.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 20);
+  const firstSentence = sampleSnippets[0] || 'The shadows lingered in the corridors.';
 
   const fallbackResult = {
-    indication,
-    confidenceScore: 88,
-    spamScore: 1,
-    originalityScore: 94,
+    indication: isDisqualified ? 'High indication of AI assistance' : 'Low indication of AI assistance',
+    confidenceScore: 92,
+    spamScore: isDisqualified ? 40 : 1,
+    originalityScore: isDisqualified ? 34 : 96,
+    aiWritingRate: aiRate,
+    isDisqualified,
+    disqualificationReason: isDisqualified
+      ? `⚠️ Disqualified: AI writing rate detected at ${aiRate}%, exceeding the 85% platform limit. LEXORA requires genuine human creative voice.`
+      : undefined,
     potentialPlagiarismConcern: false,
     unsafeOrProhibitedContent: false,
-    flags: [
-      'High descriptive vocabulary',
-      'Organic sentence length variation',
-      'Consistent serialized pacing'
+    flags: isDisqualified
+      ? ['High synthetic uniformity', 'Robotic transition frequency', 'Low sensory variability']
+      : ['High sensory vocabulary', 'Organic sentence length variation', 'Preserved human voice'],
+    editorialFeedback: isDisqualified
+      ? 'The passage relies on generic abstractions and formulaic clauses. We recommend using "Preserve My Voice" to re-infuse distinctive sensory grounded prose.'
+      : 'Text exhibits strong narrative depth and vivid character interiority with good balance of atmosphere.',
+    aiCorrections: [
+      {
+        id: 'corr_1',
+        originalText: firstSentence,
+        correctedText: `${firstSentence.replace(/\b(very|extremely|utilize|furthermore)\b/gi, '').trim()}, laden with the chill of late autumn and unvoiced memory.`,
+        explanation: 'Enriches sensory weight and eliminates synthetic filler words.',
+        category: 'preserve_voice',
+      },
+      {
+        id: 'corr_2',
+        originalText: 'It is important to remember that everything happens for a reason.',
+        correctedText: 'Time leaves its scars quietly, etched in the grain of old floorboards.',
+        explanation: 'Replaces generic cliché with concrete physical metaphor.',
+        category: 'prose_flow',
+      },
     ],
-    editorialFeedback: 'Text exhibits strong narrative depth and vivid character interiority with good balance of atmosphere.',
     analyzedAt: new Date().toISOString(),
   };
 
@@ -335,7 +390,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Vellum server running on http://0.0.0.0:${PORT}`);
+    console.log(`LEXORA server running on http://0.0.0.0:${PORT}`);
   });
 }
 

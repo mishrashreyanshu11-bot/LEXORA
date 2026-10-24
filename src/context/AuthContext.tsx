@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
+import { User, DEFAULT_AVATAR } from '../types';
 import { SEED_USERS, FOUNDER_USER } from '../data/seedData';
 
 interface AuthContextType {
@@ -16,6 +16,7 @@ interface AuthContextType {
     displayName: string;
     dob: string;
     bio?: string;
+    avatar?: string;
   }) => { success: boolean; error?: string };
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
@@ -25,12 +26,13 @@ interface AuthContextType {
   isFollowing: (writerId: string) => boolean;
   togglePremiumSubscription: (active: boolean) => void;
   toggleUserVerification: (userId: string) => void;
+  awardUserCrownAndVerification: (userId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY_USER = 'vellum_current_user_v2';
-const STORAGE_KEY_ALL_USERS = 'vellum_users_v2';
+const STORAGE_KEY_USER = 'lexora_current_user_v2';
+const STORAGE_KEY_ALL_USERS = 'lexora_users_v2';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [allUsers, setAllUsers] = useState<User[]>(() => {
@@ -75,18 +77,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isPremiumSubscriber = Boolean(currentUser?.isPremiumSubscriber || isFounder);
 
   /**
-   * Single-password login:
-   * For mishrashreyanshu11@gmail.com, any single password grants full Founder access!
+   * Founder Authentication:
+   * mishrashreyanshu11@gmail.com requires the designated Founder master password.
+   * Other passwords are strictly rejected for security and authenticity.
    */
+  const FOUNDER_VALID_PASSWORDS = [
+    'Shreyanshu#2026',
+    'LexoraFounder11',
+    'Shreyanshu11*',
+    'Shreyanshu11',
+    'Founder@Lexora',
+    'Lexora@2026',
+  ];
+
   const loginWithPassword = (emailOrUsername: string, password?: string): { success: boolean; error?: string } => {
     const clean = emailOrUsername.trim().toLowerCase();
 
     // Check if Founder account
-    if (clean === 'mishrashreyanshu11@gmail.com' || clean === 'shreyanshu') {
+    if (
+      clean === 'mishrashreyanshu11@gmail.com' ||
+      clean === 'mishrashreyanshu11@gmail.con' ||
+      clean === 'shreyanshu'
+    ) {
       if (!password || !password.trim()) {
-        return { success: false, error: 'Please enter your password.' };
+        return { success: false, error: 'Please enter your Founder password.' };
       }
-      // Single password login confirmed for Founder
+
+      // Check against designated founder passwords
+      const isCorrectFounderPass = FOUNDER_VALID_PASSWORDS.includes(password.trim());
+      if (!isCorrectFounderPass) {
+        return {
+          success: false,
+          error: 'Incorrect password for Founder account. Access restricted to CEO & Founder Shreyanshu Mishra.',
+        };
+      }
+
       setCurrentUser(FOUNDER_USER);
       return { success: true };
     }
@@ -100,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: true };
     }
 
-    return { success: false, error: 'Account not found. Please check your credentials.' };
+    return { success: false, error: 'Account not found. Please check your credentials or sign up.' };
   };
 
   const login = (emailOrUsername: string, password?: string): boolean => {
@@ -113,6 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     displayName: string;
     dob: string;
     bio?: string;
+    avatar?: string;
   }) => {
     const cleanEmail = data.email.trim().toLowerCase();
     const cleanUsername = data.username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
@@ -131,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (age < 13) {
-      return { success: false, error: 'You must be at least 13 years old to join Vellum.' };
+      return { success: false, error: 'You must be at least 13 years old to join LEXORA.' };
     }
 
     // Check duplicate
@@ -144,13 +170,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const isOfficialFounder = cleanEmail === 'mishrashreyanshu11@gmail.com';
 
+    // User chooses avatar or skips to DEFAULT_AVATAR (/assets/aistudio/IMG_6033_dd143268.jpeg)
+    const userAvatar = data.avatar && data.avatar.trim() ? data.avatar.trim() : DEFAULT_AVATAR;
+
     const newUser: User = {
       id: `usr_${Date.now()}`,
       email: data.email.trim(),
       username: cleanUsername,
       displayName: data.displayName.trim() || cleanUsername,
       bio: data.bio || '',
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.displayName)}&backgroundColor=05080f&textColor=26f7db`,
+      avatar: userAvatar,
       dob: data.dob,
       role: isOfficialFounder ? 'founder' : 'reader',
       isVerified: isOfficialFounder,
@@ -232,6 +261,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  /**
+   * Challenge Winner Grand Prize:
+   * 1. 👑 Crown badge above avatar
+   * 2. 1 Month Free Verification (isVerified: true with 30-day verifiedUntil)
+   * 3. Increments challengeWins
+   */
+  const awardUserCrownAndVerification = (userId: string) => {
+    const expiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    setAllUsers(prev =>
+      prev.map(u => {
+        if (u.id === userId) {
+          return {
+            ...u,
+            hasCrownBadge: true,
+            isVerified: true,
+            verifiedUntil: expiry,
+            challengeWins: (u.challengeWins || 0) + 1,
+          };
+        }
+        return u;
+      })
+    );
+    if (currentUser?.id === userId) {
+      setCurrentUser(prev =>
+        prev
+          ? {
+              ...prev,
+              hasCrownBadge: true,
+              isVerified: true,
+              verifiedUntil: expiry,
+              challengeWins: (prev.challengeWins || 0) + 1,
+            }
+          : null
+      );
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -251,6 +317,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isFollowing,
         togglePremiumSubscription,
         toggleUserVerification,
+        awardUserCrownAndVerification,
       }}
     >
       {children}

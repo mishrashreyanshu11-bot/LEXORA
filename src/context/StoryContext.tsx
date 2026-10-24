@@ -13,6 +13,11 @@ import {
   PlatformSettings,
   AIAssessmentResult,
   ReadingProgress,
+  Challenge,
+  ChallengeSubmission,
+  InkVaultItem,
+  WritersCircleGroup,
+  AICorrectionSuggestion,
 } from '../types';
 import {
   SEED_STORIES,
@@ -23,6 +28,10 @@ import {
   SEED_COMMUNITY_THREADS,
   SEED_NOTIFICATIONS,
   SEED_SETTINGS,
+  SEED_CHALLENGES,
+  SEED_CHALLENGE_SUBMISSIONS,
+  SEED_INK_VAULT,
+  SEED_WRITERS_CIRCLES,
 } from '../data/seedData';
 import { isStoryPremium } from '../utils/premiumRules';
 import { useAuth } from './AuthContext';
@@ -42,6 +51,29 @@ interface StoryContextType {
   reports: ReportItem[];
   notifications: AppNotification[];
   settings: PlatformSettings;
+
+  // Challenge Arena (Quarterly, 4x a year)
+  challenges: Challenge[];
+  activeChallenge: Challenge;
+  submissions: ChallengeSubmission[];
+  submitStoryToChallenge: (data: {
+    storyId: string;
+    contentType: 'Story' | 'Poem' | 'Article';
+    challengeId?: string;
+  }) => Promise<ChallengeSubmission>;
+  verifySubmissionByCEO: (submissionId: string, rank?: 1 | 2 | 3, ceoRemarks?: string) => void;
+  awardChampionWinner: (submissionId: string, remarks?: string) => void;
+
+  // InkVault
+  inkVaultItems: InkVaultItem[];
+  addInkVaultItem: (item: Omit<InkVaultItem, 'id' | 'lastVaultedAt'>) => InkVaultItem;
+  deleteInkVaultItem: (id: string) => void;
+
+  // Writers' Circle Pro
+  writersCircles: WritersCircleGroup[];
+
+  // AI Editorial & Integrity Actions
+  applyCorrectionToPart: (partId: string, originalText: string, correctedText: string) => void;
   
   // Actions
   toggleSaveStory: (storyId: string) => void;
@@ -114,12 +146,12 @@ interface StoryContextType {
 const StoryContext = createContext<StoryContextType | undefined>(undefined);
 
 export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, isFounder, togglePremiumSubscription } = useAuth();
+  const { currentUser, isFounder, togglePremiumSubscription, awardUserCrownAndVerification } = useAuth();
 
   // Settings
   const [settings, setSettings] = useState<PlatformSettings>(() => {
     try {
-      const saved = localStorage.getItem('vellum_settings');
+      const saved = localStorage.getItem('lexora_settings');
       return saved ? JSON.parse(saved) : SEED_SETTINGS;
     } catch {
       return SEED_SETTINGS;
@@ -129,7 +161,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Stories
   const [stories, setStories] = useState<Story[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_stories_v2');
+      const saved = localStorage.getItem('lexora_stories_v2');
       return saved ? JSON.parse(saved) : SEED_STORIES;
     } catch {
       return SEED_STORIES;
@@ -139,7 +171,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Parts
   const [parts, setParts] = useState<StoryPart[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_parts_v2');
+      const saved = localStorage.getItem('lexora_parts_v2');
       return saved ? JSON.parse(saved) : SEED_PARTS;
     } catch {
       return SEED_PARTS;
@@ -149,7 +181,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Reviews
   const [reviews, setReviews] = useState<RatingReview[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_reviews_v2');
+      const saved = localStorage.getItem('lexora_reviews_v2');
       return saved ? JSON.parse(saved) : SEED_REVIEWS;
     } catch {
       return SEED_REVIEWS;
@@ -159,7 +191,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Saved Stories (Library)
   const [savedStoryIds, setSavedStoryIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_saved_stories_v2');
+      const saved = localStorage.getItem('lexora_saved_stories_v2');
       return saved ? JSON.parse(saved) : ['story_atomic_habits', 'story_psychology_of_money'];
     } catch {
       return ['story_atomic_habits', 'story_psychology_of_money'];
@@ -169,7 +201,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Reading progress
   const [readingProgress, setReadingProgress] = useState<Record<string, ReadingProgress>>(() => {
     try {
-      const saved = localStorage.getItem('vellum_reading_progress_v2');
+      const saved = localStorage.getItem('lexora_reading_progress_v2');
       return saved ? JSON.parse(saved) : {
         story_atomic_habits: {
           storyId: 'story_atomic_habits',
@@ -187,7 +219,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Bookmarks
   const [bookmarks, setBookmarks] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_bookmarks');
+      const saved = localStorage.getItem('lexora_bookmarks');
       return saved ? JSON.parse(saved) : ['part_echoes_2'];
     } catch {
       return [];
@@ -197,7 +229,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Purchased Stories (₹19 story unlocks)
   const [purchasedStoryIds, setPurchasedStoryIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_purchased_stories');
+      const saved = localStorage.getItem('lexora_purchased_stories');
       return saved ? JSON.parse(saved) : ['story_echoes_bangalore'];
     } catch {
       return ['story_echoes_bangalore'];
@@ -207,7 +239,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Payments
   const [payments, setPayments] = useState<PaymentRecord[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_payments');
+      const saved = localStorage.getItem('lexora_payments');
       return saved ? JSON.parse(saved) : SEED_PAYMENTS;
     } catch {
       return SEED_PAYMENTS;
@@ -217,7 +249,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Certificates
   const [certificates, setCertificates] = useState<WriterCertificate[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_certificates');
+      const saved = localStorage.getItem('lexora_certificates');
       return saved ? JSON.parse(saved) : [SEED_CERTIFICATE];
     } catch {
       return [SEED_CERTIFICATE];
@@ -227,7 +259,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Suggestions
   const [suggestions, setSuggestions] = useState<StorySuggestion[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_suggestions');
+      const saved = localStorage.getItem('lexora_suggestions');
       return saved ? JSON.parse(saved) : [
         {
           id: 'sug_1',
@@ -253,7 +285,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Community
   const [threads, setThreads] = useState<CommunityThread[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_threads');
+      const saved = localStorage.getItem('lexora_threads');
       return saved ? JSON.parse(saved) : SEED_COMMUNITY_THREADS;
     } catch {
       return SEED_COMMUNITY_THREADS;
@@ -263,7 +295,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Reports
   const [reports, setReports] = useState<ReportItem[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_reports');
+      const saved = localStorage.getItem('lexora_reports');
       return saved ? JSON.parse(saved) : [
         {
           id: 'rep_1',
@@ -285,68 +317,117 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Notifications
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     try {
-      const saved = localStorage.getItem('vellum_notifications');
+      const saved = localStorage.getItem('lexora_notifications');
       return saved ? JSON.parse(saved) : SEED_NOTIFICATIONS;
     } catch {
       return SEED_NOTIFICATIONS;
     }
   });
 
+  // Challenges (Quarterly, 4x a year)
+  const [challenges, setChallenges] = useState<Challenge[]>(() => {
+    try {
+      const saved = localStorage.getItem('lexora_challenges');
+      return saved ? JSON.parse(saved) : SEED_CHALLENGES;
+    } catch {
+      return SEED_CHALLENGES;
+    }
+  });
+
+  const activeChallenge = challenges.find(c => c.status === 'active') || challenges[0];
+
+  // Challenge Submissions
+  const [submissions, setSubmissions] = useState<ChallengeSubmission[]>(() => {
+    try {
+      const saved = localStorage.getItem('lexora_challenge_submissions');
+      return saved ? JSON.parse(saved) : SEED_CHALLENGE_SUBMISSIONS;
+    } catch {
+      return SEED_CHALLENGE_SUBMISSIONS;
+    }
+  });
+
+  // InkVault Items
+  const [inkVaultItems, setInkVaultItems] = useState<InkVaultItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('lexora_ink_vault');
+      return saved ? JSON.parse(saved) : SEED_INK_VAULT;
+    } catch {
+      return SEED_INK_VAULT;
+    }
+  });
+
+  // Writers Circles
+  const [writersCircles, setWritersCircles] = useState<WritersCircleGroup[]>(() => {
+    return SEED_WRITERS_CIRCLES;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lexora_challenges', JSON.stringify(challenges));
+  }, [challenges]);
+
+  useEffect(() => {
+    localStorage.setItem('lexora_challenge_submissions', JSON.stringify(submissions));
+  }, [submissions]);
+
+  useEffect(() => {
+    localStorage.setItem('lexora_ink_vault', JSON.stringify(inkVaultItems));
+  }, [inkVaultItems]);
+
   // Synchronize state changes to localStorage
   useEffect(() => {
-    localStorage.setItem('vellum_settings', JSON.stringify(settings));
+    localStorage.setItem('lexora_settings', JSON.stringify(settings));
   }, [settings]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_stories_v2', JSON.stringify(stories));
+    localStorage.setItem('lexora_stories_v2', JSON.stringify(stories));
   }, [stories]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_parts_v2', JSON.stringify(parts));
+    localStorage.setItem('lexora_parts_v2', JSON.stringify(parts));
   }, [parts]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_reviews_v2', JSON.stringify(reviews));
+    localStorage.setItem('lexora_reviews_v2', JSON.stringify(reviews));
   }, [reviews]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_saved_stories_v2', JSON.stringify(savedStoryIds));
+    localStorage.setItem('lexora_saved_stories_v2', JSON.stringify(savedStoryIds));
   }, [savedStoryIds]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_reading_progress_v2', JSON.stringify(readingProgress));
+    localStorage.setItem('lexora_reading_progress_v2', JSON.stringify(readingProgress));
   }, [readingProgress]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_bookmarks', JSON.stringify(bookmarks));
+    localStorage.setItem('lexora_bookmarks', JSON.stringify(bookmarks));
   }, [bookmarks]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_purchased_stories', JSON.stringify(purchasedStoryIds));
+    localStorage.setItem('lexora_purchased_stories', JSON.stringify(purchasedStoryIds));
   }, [purchasedStoryIds]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_payments', JSON.stringify(payments));
+    localStorage.setItem('lexora_payments', JSON.stringify(payments));
   }, [payments]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_certificates', JSON.stringify(certificates));
+    localStorage.setItem('lexora_certificates', JSON.stringify(certificates));
   }, [certificates]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_suggestions', JSON.stringify(suggestions));
+    localStorage.setItem('lexora_suggestions', JSON.stringify(suggestions));
   }, [suggestions]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_threads', JSON.stringify(threads));
+    localStorage.setItem('lexora_threads', JSON.stringify(threads));
   }, [threads]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_reports', JSON.stringify(reports));
+    localStorage.setItem('lexora_reports', JSON.stringify(reports));
   }, [reports]);
 
   useEffect(() => {
-    localStorage.setItem('vellum_notifications', JSON.stringify(notifications));
+    localStorage.setItem('lexora_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
   // Actions
@@ -383,7 +464,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const createStory = (storyData: Partial<Story>): Story => {
     const author = currentUser || {
       id: 'usr_anon',
-      displayName: 'Vellum Author',
+      displayName: 'LEXORA Author',
       username: 'author',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       isVerified: false,
@@ -393,7 +474,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newStory: Story = {
       id: `story_${Date.now()}`,
       title: storyData.title || 'Untitled Serial',
-      synopsis: storyData.synopsis || 'An original serialized story on Vellum.',
+      synopsis: storyData.synopsis || 'An original serialized story on LEXORA.',
       coverImage: storyData.coverImage || 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=800&q=80',
       authorId: author.id,
       authorName: author.displayName,
@@ -633,7 +714,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }): Promise<PaymentRecord> => {
     const user = currentUser || {
       id: 'usr_guest',
-      email: 'guest@vellum.read',
+      email: 'guest@lexora.read',
       displayName: 'Guest Reader',
     };
 
@@ -907,7 +988,213 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {}
   };
 
-  // AI Content Assessment using backend Gemini
+  // Challenge Arena Methods
+  const submitStoryToChallenge = async (data: {
+    storyId: string;
+    contentType: 'Story' | 'Poem' | 'Article';
+    challengeId?: string;
+  }): Promise<ChallengeSubmission> => {
+    const targetStory = stories.find(s => s.id === data.storyId);
+    const storyParts = parts.filter(p => p.storyId === data.storyId);
+    const textSample = storyParts.map(p => p.content).join('\n\n') || targetStory?.synopsis || '';
+
+    // Real-time AI Editorial assessment
+    const assessment = await assessStoryContent(
+      targetStory?.title || 'Challenge Submission',
+      textSample,
+      targetStory?.category,
+      targetStory?.genre
+    );
+
+    const overallScore = Math.max(35, Math.min(99, Math.round((assessment.originalityScore * 0.45) + (assessment.confidenceScore * 0.45) - (assessment.aiWritingRate * 0.25))));
+
+    const newSub: ChallengeSubmission = {
+      id: `sub_${Date.now()}`,
+      challengeId: data.challengeId || activeChallenge.id,
+      storyId: data.storyId,
+      storyTitle: targetStory?.title || 'Untitled',
+      storySynopsis: targetStory?.synopsis || '',
+      storyCover: targetStory?.coverImage || 'https://images.unsplash.com/photo-1516542076529-1ea3854896f2?auto=format&fit=crop&w=800&q=80',
+      authorId: currentUser?.id || 'usr_anonymous',
+      authorName: currentUser?.displayName || 'Anonymous Author',
+      authorUsername: currentUser?.username || 'author',
+      authorAvatar: currentUser?.avatar || '/assets/aistudio/IMG_6033_dd143268.jpeg',
+      contentType: data.contentType,
+      submittedAt: new Date().toISOString(),
+      aiGrading: {
+        overallScore,
+        creativityScore: Math.min(99, overallScore + 2),
+        proseScore: Math.min(99, overallScore - 1),
+        emotionalDepthScore: Math.min(99, overallScore),
+        aiWritingRate: assessment.aiWritingRate,
+        isDisqualified: assessment.isDisqualified,
+        disqualificationReason: assessment.disqualificationReason,
+        editorialCritique: assessment.editorialFeedback,
+        evaluatedAt: new Date().toISOString(),
+      },
+    };
+
+    setSubmissions(prev => [newSub, ...prev]);
+
+    // Update story with challengeEntryId
+    setStories(prev =>
+      prev.map(st => (st.id === data.storyId ? { ...st, challengeEntryId: newSub.id } : st))
+    );
+
+    // If disqualified, notify author
+    if (assessment.isDisqualified) {
+      setNotifications(prev => [
+        {
+          id: `notif_disq_${Date.now()}`,
+          userId: currentUser?.id || 'usr_anonymous',
+          type: 'moderation',
+          title: '⚠️ Arena Submission Disqualified by AI Team',
+          message: assessment.disqualificationReason || `Detected AI writing rate of ${assessment.aiWritingRate}%, exceeding the 85% limit.`,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    }
+
+    return newSub;
+  };
+
+  const verifySubmissionByCEO = (submissionId: string, rank?: 1 | 2 | 3, ceoRemarks?: string) => {
+    setSubmissions(prev =>
+      prev.map(sub => {
+        if (sub.id === submissionId) {
+          return {
+            ...sub,
+            ceoVerification: {
+              isVerifiedByCEO: true,
+              rank,
+              ceoRemarks: ceoRemarks || `Verified by CEO Shreyanshu Mishra${rank ? ` for ${rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'} place.` : '.'}`,
+              verifiedAt: new Date().toISOString(),
+            },
+          };
+        }
+        return sub;
+      })
+    );
+  };
+
+  const awardChampionWinner = (submissionId: string, remarks?: string) => {
+    const sub = submissions.find(s => s.id === submissionId);
+    if (!sub) return;
+
+    const finalRemarks = remarks || 'Crowned 1st position winner of the LEXORA Literary Arena by CEO Shreyanshu Mishra.';
+
+    // 1. Update submission with rank 1
+    verifySubmissionByCEO(submissionId, 1, finalRemarks);
+
+    // 2. Award User: Floating Crown Badge + 1 Month Free Verification
+    awardUserCrownAndVerification(sub.authorId);
+
+    // 3. Cast Winning Story on Home Page for 1 Week!
+    const castedExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    setStories(prev =>
+      prev.map(st => {
+        if (st.id === sub.storyId) {
+          return {
+            ...st,
+            isCastedOnHomeUntil: castedExpiry,
+            authorHasCrownBadge: true,
+            isFeatured: true,
+          };
+        }
+        return st;
+      })
+    );
+
+    // 4. Update Challenge Winner
+    setChallenges(prev =>
+      prev.map(c => {
+        if (c.id === sub.challengeId) {
+          return {
+            ...c,
+            winnerSubmissionId: sub.id,
+            winnerAuthorId: sub.authorId,
+            winnerStoryId: sub.storyId,
+          };
+        }
+        return c;
+      })
+    );
+
+    // 5. Generate Official Winner Certificate
+    const certId = `CERT-ARENA-${Date.now().toString(36).toUpperCase()}`;
+    const newCert: WriterCertificate = {
+      id: `cert_${Date.now()}`,
+      certificateId: certId,
+      writerId: sub.authorId,
+      writerName: sub.authorName,
+      writerUsername: sub.authorUsername,
+      qualifyingStoriesCount: 1,
+      averageRating: Math.round((sub.aiGrading.overallScore / 20) * 10) / 10,
+      issuedDate: new Date().toISOString(),
+      signedBy: 'Shreyanshu Mishra, CEO & Founder',
+      verificationCode: `LEXORA-CHAMPION-${sub.challengeId.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+    };
+    setCertificates(prev => [newCert, ...prev]);
+
+    // 6. Celebratory Notification to winner
+    setNotifications(prev => [
+      {
+        id: `notif_crown_${Date.now()}`,
+        userId: sub.authorId,
+        type: 'writer_certificate',
+        title: '👑 1st Position Awarded — LEXORA Literary Arena!',
+        message: `Congratulations ${sub.authorName}! CEO Shreyanshu Mishra has verified your masterpiece "${sub.storyTitle}". You have been awarded 1st position with a floating crown badge, 1 month free verification, 1-week home page casting, and an official signed Winner Certificate.`,
+        link: `/story/${sub.storyId}`,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+  };
+
+  // InkVault Methods
+  const addInkVaultItem = (item: Omit<InkVaultItem, 'id' | 'lastVaultedAt'>): InkVaultItem => {
+    const newItem: InkVaultItem = {
+      ...item,
+      id: `vault_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      lastVaultedAt: new Date().toISOString(),
+    };
+    setInkVaultItems(prev => [newItem, ...prev]);
+    return newItem;
+  };
+
+  const deleteInkVaultItem = (id: string) => {
+    setInkVaultItems(prev => prev.filter(v => v.id !== id));
+  };
+
+  // 1-Click AI Suggestion Application (Preserve My Voice)
+  const applyCorrectionToPart = (partId: string, originalText: string, correctedText: string) => {
+    setParts(prev =>
+      prev.map(p => {
+        if (p.id === partId) {
+          const updatedContent = p.content.replace(originalText, correctedText);
+          return {
+            ...p,
+            content: updatedContent,
+            updatedAt: new Date().toISOString(),
+            aiAssessment: p.aiAssessment
+              ? {
+                  ...p.aiAssessment,
+                  aiWritingRate: Math.max(2, p.aiAssessment.aiWritingRate - 25),
+                  isDisqualified: false,
+                  disqualificationReason: undefined,
+                }
+              : undefined,
+          };
+        }
+        return p;
+      })
+    );
+  };
+
+  // AI Content Assessment using backend Gemini with 85% rule & corrections
   const assessStoryContent = async (
     title: string,
     content: string,
@@ -927,15 +1214,39 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.warn('API assess failed, generating client fallback assessment:', e);
     }
 
+    // Client fallback adhering to 85% threshold rule
+    const sample = (content || '').slice(0, 1000);
+    const aiTransitionMatches = (sample.match(/\b(moreover|furthermore|in conclusion|delve|testament to|beacon of|vital role)\b/gi) || []).length;
+    let aiRate = Math.min(92, Math.max(4, aiTransitionMatches * 18));
+    const isDisqualified = aiRate >= 85;
+
     return {
-      indication: 'Low indication of AI assistance',
-      confidenceScore: 91,
-      spamScore: 1,
-      originalityScore: 96,
+      indication: isDisqualified ? 'High indication of AI assistance' : 'Low indication of AI assistance',
+      confidenceScore: 92,
+      spamScore: isDisqualified ? 30 : 1,
+      originalityScore: isDisqualified ? 35 : 96,
+      aiWritingRate: aiRate,
+      isDisqualified,
+      disqualificationReason: isDisqualified
+        ? `⚠️ Disqualified: AI writing rate detected at ${aiRate}%, exceeding the 85% limit. LEXORA requires genuine human creative originality.`
+        : undefined,
       potentialPlagiarismConcern: false,
       unsafeOrProhibitedContent: false,
-      flags: ['Organic narrative flow', 'Nuanced character interiority', 'Original descriptive imagery'],
-      editorialFeedback: 'High stylistic cohesion with authentic emotional resonance and rhythmic prose.',
+      flags: isDisqualified
+        ? ['High synthetic uniformity', 'Robotic transitions', 'Low sensory variability']
+        : ['Organic narrative flow', 'Nuanced character interiority', 'Original descriptive imagery'],
+      editorialFeedback: isDisqualified
+        ? 'High AI assistance rate. Use "Preserve My Voice" corrections below to restore your personal authorial tone.'
+        : 'High stylistic cohesion with authentic emotional resonance and rhythmic prose.',
+      aiCorrections: [
+        {
+          id: 'corr_1',
+          originalText: sample.slice(0, 60),
+          correctedText: `${sample.slice(0, 60).replace(/\b(very|extremely|furthermore)\b/gi, '').trim()}, laden with the chill of late autumn and unvoiced memory.`,
+          explanation: 'Restores sensory weight and human descriptive cadence.',
+          category: 'preserve_voice',
+        },
+      ],
       analyzedAt: new Date().toISOString(),
     };
   };
@@ -967,6 +1278,23 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         reports,
         notifications,
         settings,
+
+        // Challenges & Arena
+        challenges,
+        activeChallenge,
+        submissions,
+        submitStoryToChallenge,
+        verifySubmissionByCEO,
+        awardChampionWinner,
+
+        // InkVault & Writers Circles
+        inkVaultItems,
+        addInkVaultItem,
+        deleteInkVaultItem,
+        writersCircles,
+
+        // AI Corrections
+        applyCorrectionToPart,
 
         toggleSaveStory,
         isStorySaved,

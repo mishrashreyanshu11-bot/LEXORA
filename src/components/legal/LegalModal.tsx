@@ -23,7 +23,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         <div className="p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
           <div>
             <h3 className="font-bold text-lg font-sans-modern">Legal &amp; User Safety Center</h3>
-            <p className="text-xs text-slate-400">Platform standards, compliance, and policies for Vellum.</p>
+            <p className="text-xs text-slate-400">Platform standards, compliance, and policies for LEXORA.</p>
           </div>
           <button
             onClick={onClose}
@@ -62,15 +62,15 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             <div className="space-y-3">
               <h4 className="text-base font-bold text-slate-900">1. Acceptance of Terms</h4>
               <p>
-                By accessing or registering with Vellum, you agree to abide by all platform rules and terms. Vellum is dedicated to high-standard serialized reading and ethical independent publishing.
+                By accessing or registering with LEXORA, you agree to abide by all platform rules and terms. LEXORA is dedicated to high-standard serialized reading and ethical independent publishing.
               </p>
               <h4 className="text-sm font-bold text-slate-900">2. Free-to-Premium Story Model</h4>
               <p>
                 Every story begins 100% free. Stories only become eligible for the ₹19 Premium Story tier upon crossing BOTH conditions: average reader rating strictly greater than 4.8/5 and at least 400 genuine reader ratings. For premium eligible stories, stories under 40 parts offer 75% free, and stories with 40 or more parts offer at least 20 parts free before the ₹19 paywall is triggered. Unlocking a story grants permanent access to all existing and future parts.
               </p>
-              <h4 className="text-sm font-bold text-slate-900">3. Vellum Premium Subscription</h4>
+              <h4 className="text-sm font-bold text-slate-900">3. LEXORA Premium Subscription</h4>
               <p>
-                The ₹299/month Vellum Premium subscription grants unlimited reading access across all premium stories while active, overriding individual story purchases.
+                The ₹299/month LEXORA Premium subscription grants unlimited reading access across all premium stories while active, overriding individual story purchases.
               </p>
             </div>
           )}
@@ -79,7 +79,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             <div className="space-y-3">
               <h4 className="text-base font-bold text-slate-900">Community &amp; Critique Standards</h4>
               <p>
-                Vellum champions constructive, thoughtful dialogue. Through our "Suggest an Edit" feature and Community Circles, critique must remain respectful, specific, and focused on craft (plot, pacing, character development, and grammar).
+                LEXORA champions constructive, thoughtful dialogue. Through our "Suggest an Edit" feature and Community Circles, critique must remain respectful, specific, and focused on craft (plot, pacing, character development, and grammar).
               </p>
               <p>
                 Hate speech, spam, harassment, and targeted defamation are strictly prohibited and will lead to account suspension or removal.
@@ -91,7 +91,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             <div className="space-y-3">
               <h4 className="text-base font-bold text-slate-900">Intellectual Property &amp; Originality</h4>
               <p>
-                Writers retain 100% ownership of their literary works published on Vellum. You represent and warrant that your submissions are original works and do not infringe on third-party copyrights.
+                Writers retain 100% ownership of their literary works published on LEXORA. You represent and warrant that your submissions are original works and do not infringe on third-party copyrights.
               </p>
               <p>
                 Our automated AI Content Assessment flags potential duplicate phrasing, high-risk text, and plagiarism signals for review by Founder and platform moderators.

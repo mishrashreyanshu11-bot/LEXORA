@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Story, StoryPart, AIAssessmentResult } from '../../types';
+import { Story, StoryPart, AIAssessmentResult, LISTING_CATEGORIES } from '../../types';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -18,6 +18,13 @@ import {
   ShieldCheck,
   X,
   Bot,
+  Brain,
+  Feather,
+  Wand2,
+  Music,
+  Download,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 interface StoryEditorViewProps {
@@ -49,6 +56,7 @@ export const StoryEditorView: React.FC<StoryEditorViewProps> = ({
     deletePart,
     reorderParts,
     assessStoryContent,
+    applyCorrectionToPart,
   } = useStories();
 
   const { currentUser } = useAuth();
@@ -58,10 +66,11 @@ export const StoryEditorView: React.FC<StoryEditorViewProps> = ({
   const [synopsis, setSynopsis] = useState(storyToEdit?.synopsis || '');
   const [coverImage, setCoverImage] = useState(storyToEdit?.coverImage || PRESET_COVERS[0]);
   const [customCoverUrl, setCustomCoverUrl] = useState('');
-  const [category, setCategory] = useState(storyToEdit?.category || 'Fiction');
-  const [genre, setGenre] = useState(storyToEdit?.genre || 'Speculative Fiction');
+  const [category, setCategory] = useState(storyToEdit?.category || LISTING_CATEGORIES[0].name);
+  const [contentType, setContentType] = useState<'Article' | 'Story' | 'Poem'>('Story');
+  const [genre, setGenre] = useState(storyToEdit?.genre || 'Speculative');
   const [language, setLanguage] = useState(storyToEdit?.language || 'English');
-  const [tagsInput, setTagsInput] = useState(storyToEdit?.tags.join(', ') || 'Serialized, Original');
+  const [tagsInput, setTagsInput] = useState(storyToEdit?.tags.join(', ') || 'Original, Insight');
   const [completed, setCompleted] = useState(storyToEdit?.completed || false);
 
   // Active Story & Parts
@@ -78,6 +87,12 @@ export const StoryEditorView: React.FC<StoryEditorViewProps> = ({
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isAssessing, setIsAssessing] = useState(false);
   const [aiResult, setAiResult] = useState<AIAssessmentResult | null>(null);
+
+  // Advanced Writing Studio States (Feature 2 & 1)
+  const [distractionFree, setDistractionFree] = useState(false);
+  const [rhymeModalOpen, setRhymeModalOpen] = useState(false);
+  const [rhymeQuery, setRhymeQuery] = useState('');
+  const [rhymeResults, setRhymeResults] = useState<string[]>([]);
 
   const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
 
@@ -298,31 +313,84 @@ export const StoryEditorView: React.FC<StoryEditorViewProps> = ({
               />
             </div>
 
-            {/* Categorization */}
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-600">Category</label>
-                <select
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded-xl border border-slate-300 bg-white"
-                >
-                  <option value="Fiction">Fiction</option>
-                  <option value="Mystery">Mystery</option>
-                  <option value="Speculative Fiction">Speculative Fiction</option>
-                  <option value="Non-Fiction">Non-Fiction</option>
-                  <option value="Poetry & Short Form">Poetry & Short Form</option>
-                </select>
+            {/* Listing Type: Article, Story, or Poem */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Listing Type</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['Article', 'Story', 'Poem'] as const).map(type => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setContentType(type)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      contentType === type
+                        ? 'bg-slate-950 text-white border-slate-950 shadow-xs'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{type === 'Article' ? '📄' : type === 'Story' ? '📖' : '✍️'}</span>
+                    <span>{type}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Official Categories matching IMG_6032_e62ea990.jpeg */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  CATEGORIES
+                </span>
+                <span className="text-[11px] font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200 flex items-center gap-1">
+                  <span>Selected:</span>
+                  <span>{category}</span>
+                </span>
               </div>
 
+              {/* Scrollable / wrap grid of categories */}
+              <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto p-2.5 rounded-2xl border border-slate-200 bg-slate-50/60 shadow-inner">
+                {LISTING_CATEGORIES.map(cat => {
+                  const isSelected = category === cat.name;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategory(cat.name)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-slate-950 text-white border-slate-950 shadow-xs scale-105'
+                          : 'bg-white text-slate-800 border-slate-200/90 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{cat.name}</span>
+                      <span className="text-sm select-none">{cat.emoji}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Sub-genre & Language */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="space-y-1">
-                <label className="font-semibold text-slate-600">Genre</label>
+                <label className="font-semibold text-slate-600">Sub-genre / Topic</label>
                 <input
                   type="text"
                   value={genre}
                   onChange={e => setGenre(e.target.value)}
-                  placeholder="e.g. Cyberpunk Noir"
-                  className="w-full px-2 py-1.5 rounded-xl border border-slate-300"
+                  placeholder="e.g. Behavioral, Speculative"
+                  className="w-full px-2.5 py-2 rounded-xl border border-slate-300"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-semibold text-slate-600">Language</label>
+                <input
+                  type="text"
+                  value={language}
+                  onChange={e => setLanguage(e.target.value)}
+                  placeholder="e.g. English, Hindi"
+                  className="w-full px-2.5 py-2 rounded-xl border border-slate-300"
                 />
               </div>
             </div>
@@ -462,19 +530,74 @@ export const StoryEditorView: React.FC<StoryEditorViewProps> = ({
                   value={partTitle}
                   onChange={e => setPartTitle(e.target.value)}
                   placeholder="e.g. Part 1 — The Empty Platform"
-                  className="w-full px-4 py-2.5 text-sm font-bold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#26F7F7]"
+                  className="w-full px-4 py-2.5 text-sm font-bold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#26f7db]"
                 />
+              </div>
+
+              {/* AI Writing Companion & Studio Toolbar */}
+              <div className="p-2.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 text-white flex flex-wrap items-center justify-between gap-2 shadow-xs">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="text-[10px] uppercase font-bold text-amber-300 px-2 py-0.5 rounded bg-amber-400/10 border border-amber-400/30">
+                    AI Studio
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={handleRunAiAssessment}
+                    className="px-2.5 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-[#26f7db] border border-teal-400/30 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Audit AI rate (85% rule) and generate Preserve My Voice suggestions"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#26f7db]" />
+                    <span>AI Integrity &amp; Voice</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const words = partContent.split(/\s+/).filter(Boolean);
+                      const lastWord = words[words.length - 1] || 'light';
+                      setRhymeQuery(lastWord.replace(/[^a-zA-Z]/g, ''));
+                      setRhymeResults(['bright', 'night', 'flight', 'sight', 'ignite', 'zenith height', 'sublime']);
+                      setRhymeModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-400/30 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Music className="w-3.5 h-3.5 text-purple-300" />
+                    <span>Rhyme Finder</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                    title="Export chapter to PDF"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Export PDF</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDistractionFree(!distractionFree)}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                    title={distractionFree ? 'Exit Distraction-Free' : 'Distraction-Free Mode'}
+                  >
+                    {distractionFree ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
 
               {/* Part Content Area */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-600">Chapter Content</label>
                 <textarea
-                  rows={20}
+                  rows={distractionFree ? 30 : 20}
                   value={partContent}
                   onChange={e => setPartContent(e.target.value)}
                   placeholder="Compose your serialized story here. Use double line breaks between paragraphs for natural editorial spacing..."
-                  className="w-full p-4 font-editorial text-base text-slate-800 leading-relaxed rounded-2xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#26F7F7] bg-white resize-y"
+                  className="w-full p-4 font-serif text-base text-slate-800 leading-relaxed rounded-2xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#26f7db] bg-white resize-y"
                 />
               </div>
             </div>
@@ -490,23 +613,87 @@ export const StoryEditorView: React.FC<StoryEditorViewProps> = ({
         </div>
       </div>
 
-      {/* AI Assessment Modal */}
+      {/* Rhyme Finder Modal */}
+      {rhymeModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 border border-purple-200 animate-fade-in">
+            <div className="flex items-center justify-between border-b pb-2">
+              <div className="flex items-center gap-2">
+                <Music className="w-5 h-5 text-purple-600" />
+                <h3 className="font-bold text-sm text-slate-950">AI Rhyme &amp; Meter Finder</h3>
+              </div>
+              <button onClick={() => setRhymeModalOpen(false)} className="text-xs text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">Query Word:</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={rhymeQuery}
+                  onChange={e => setRhymeQuery(e.target.value)}
+                  className="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:border-purple-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const w = rhymeQuery.toLowerCase();
+                    const common: Record<string, string[]> = {
+                      light: ['bright', 'night', 'flight', 'sight', 'ignite', 'zenith height'],
+                      voice: ['choice', 'rejoice', 'poise'],
+                      heart: ['part', 'start', 'art', 'depart'],
+                      ink: ['think', 'blink', 'link', 'brink', 'distinct link'],
+                      soul: ['whole', 'scroll', 'console', 'unfold'],
+                    };
+                    setRhymeResults(common[w] || [`echoing ${w}`, `deep ${w}`, `silent ${w}`, `un${w}`]);
+                  }}
+                  className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs"
+                >
+                  Find
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Rhymes &amp; Assonances:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {rhymeResults.map((r, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setPartContent(prev => prev + ' ' + r);
+                      setRhymeModalOpen(false);
+                      showNotification(`Inserted "${r}" into chapter.`);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 text-xs font-semibold cursor-pointer"
+                  >
+                    + {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Assessment & Integrity Guard Modal */}
       {aiModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 text-slate-900 border border-slate-100 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5 text-slate-900 border border-slate-100 max-h-[90vh] overflow-y-auto animate-fade-in">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-teal-50 border border-[#26F7F7]">
+                <div className="p-2 rounded-xl bg-teal-50 border border-[#26f7db]">
                   <Bot className="w-5 h-5 text-teal-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">AI Content & Safety Assessment</h3>
-                  <p className="text-[11px] text-slate-500">Gemini-assisted literary audit signal</p>
+                  <h3 className="font-bold text-base">AI Integrity Team &amp; Editorial Scanner</h3>
+                  <p className="text-[11px] text-slate-500">Autonomous 85% rule audit &amp; Preserve My Voice</p>
                 </div>
               </div>
               <button
                 onClick={() => setAiModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -516,53 +703,112 @@ export const StoryEditorView: React.FC<StoryEditorViewProps> = ({
               <div className="py-12 text-center space-y-3">
                 <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto" />
                 <p className="text-xs font-semibold text-slate-600">
-                  Auditing literary style, syntactic variability, spam patterns, and originality...
+                  Scanning for synthetic transitions, perplexity burstiness, and calculating AI rate...
                 </p>
               </div>
             ) : aiResult ? (
               <div className="space-y-4 text-xs">
-                {/* Indication Banner */}
-                <div className="p-4 rounded-2xl bg-teal-50 border border-teal-200 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-sm text-teal-950">
-                      {aiResult.indication}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full bg-white text-teal-800 font-bold border border-teal-200">
-                      {aiResult.confidenceScore}% confidence
-                    </span>
+                {/* 85% Disqualification Warning Alert */}
+                {aiResult.isDisqualified ? (
+                  <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-400 text-rose-950 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+                      <span className="font-extrabold text-sm text-rose-900 uppercase tracking-wide">
+                        ⚠️ DISQUALIFIED: Exceeds 85% AI Rate
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed text-rose-800">
+                      {aiResult.disqualificationReason || `Detected AI writing rate is ${aiResult.aiWritingRate}%, exceeding the 85% platform limit. LEXORA requires authentic human creative originality.`}
+                    </p>
+                    <p className="text-[11px] text-rose-700 font-semibold pt-1">
+                      Action Required: Apply the "Preserve My Voice" corrections below to restore human sensory texture and bring your rate below 85%.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-slate-600">
-                    Note: AI assessment is an informative moderation signal, not absolute verification.
-                  </p>
-                </div>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-teal-50 border border-teal-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-sm text-teal-950 flex items-center gap-1.5">
+                        <CheckCircle className="w-4 h-4 text-teal-600" />
+                        <span>Passed AI Integrity Check ({aiResult.aiWritingRate}% AI Rate)</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full bg-white text-teal-800 font-bold border border-teal-200">
+                        Human Authenticity
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600">
+                      Well below the 85% disqualification threshold. Eligible for official curation and Quarterly Arena.
+                    </p>
+                  </div>
+                )}
 
                 {/* Scorecards */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase">Originality Score</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase block">AI Rate</span>
+                    <p className={`text-xl font-bold font-mono ${aiResult.isDisqualified ? 'text-rose-600' : 'text-teal-700'}`}>
+                      {aiResult.aiWritingRate}%
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase block">Originality</span>
                     <p className="text-xl font-bold font-mono text-slate-900">{aiResult.originalityScore}/100</p>
                   </div>
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase">Spam Index</span>
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase block">Spam Index</span>
                     <p className="text-xl font-bold font-mono text-emerald-600">{aiResult.spamScore}%</p>
                   </div>
                 </div>
 
-                {/* Flags */}
-                <div className="space-y-2">
-                  <span className="font-bold text-slate-700">Observed Stylistic Markers:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {aiResult.flags.map((f, i) => (
-                      <span key={i} className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 text-[11px] font-medium">
-                        ✓ {f}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                {/* AI Team 1-Click Correction Suggestions */}
+                {aiResult.aiCorrections && aiResult.aiCorrections.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Wand2 className="w-4 h-4 text-teal-600" />
+                      <span>Preserve My Voice — Suggested Corrections:</span>
+                    </span>
 
-                {/* Editorial Critique */}
+                    <div className="space-y-2.5">
+                      {aiResult.aiCorrections.map(corr => (
+                        <div key={corr.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                          <div className="text-[11px] text-slate-600">
+                            <span className="font-bold text-rose-800 line-through block mb-0.5">
+                              "{corr.originalText}"
+                            </span>
+                            <span className="font-serif italic font-bold text-teal-900 block">
+                              "{corr.correctedText}"
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500">{corr.explanation}</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (selectedPartId) {
+                                const newContent = partContent.replace(corr.originalText, corr.correctedText);
+                                setPartContent(newContent);
+                                applyCorrectionToPart(selectedPartId, corr.originalText, corr.correctedText);
+                                setAiResult({
+                                  ...aiResult,
+                                  aiWritingRate: Math.max(4, aiResult.aiWritingRate - 30),
+                                  isDisqualified: false,
+                                  disqualificationReason: undefined,
+                                });
+                                showNotification('✓ Correction applied! AI writing rate reduced.');
+                              }
+                            }}
+                            className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                          >
+                            <Sparkles className="w-3 h-3 text-[#26f7db]" />
+                            <span>Apply Correction (Humanize)</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Editorial Feedback */}
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                  <span className="font-bold text-slate-700">Editorial Feedback:</span>
+                  <span className="font-bold text-slate-700">AI Editorial Feedback:</span>
                   <p className="text-slate-600 italic leading-relaxed">
                     "{aiResult.editorialFeedback}"
                   </p>

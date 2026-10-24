@@ -76,7 +76,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
             <div className="space-y-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#26F7F7]/15 text-teal-950 text-xs font-bold uppercase tracking-wider border border-[#26F7F7]/40">
                 <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                <span>Vellum Literary Circle</span>
+                <span>LEXORA Literary Circle</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-extrabold font-sans-modern tracking-tight">
                 Discussions &amp; Writer Circles

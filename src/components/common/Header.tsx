@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useStories } from '../../context/StoryContext';
 import { FounderBadge, VerifiedBadge } from './FounderBadge';
+import { LexoraSymbol } from './LexoraSymbol';
 import {
   Menu,
   X,
@@ -14,7 +15,11 @@ import {
   BookOpen,
   FileText,
   Bookmark,
-  Scale,
+  Award,
+  Trophy,
+  Lock,
+  Crown,
+  CreditCard,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -25,6 +30,13 @@ interface HeaderProps {
   onOpenUpgradeModal: () => void;
   onOpenProfile: () => void;
   onOpenIntro?: () => void;
+  onOpenArena?: () => void;
+  onOpenInkVault?: () => void;
+  onOpenPremiumHub?: () => void;
+  onOpenCertificateModal?: () => void;
+  onOpenEliteCardModal?: () => void;
+  currentScreen?: string;
+  onNavigate?: (screen: any) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,50 +47,182 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenUpgradeModal,
   onOpenProfile,
   onOpenIntro,
+  onOpenArena,
+  onOpenInkVault,
+  onOpenPremiumHub,
+  onOpenCertificateModal,
+  onOpenEliteCardModal,
+  currentScreen = 'home',
+  onNavigate,
 }) => {
   const { currentUser, isFounder, isPremiumSubscriber, logout, switchUser, allUsers } = useAuth();
   const { notifications } = useStories();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
   const unreadNotifs = notifications.filter(n => !n.isRead).length;
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onOpenSearch();
+  };
+
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-xs">
-      <div className="max-w-4xl mx-auto px-5 h-16 flex items-center justify-between">
-        {/* Brand Logo matching the exact image: "Vellum." */}
+    <header className="sticky top-0 z-40 bg-[#06070a]/95 backdrop-blur-md border-b border-[#e5b95a]/25 shadow-[0_4px_25px_rgba(0,0,0,0.85)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
+        {/* ==================================================================== */}
+        {/* Left: Brand Logo from Image 4 */}
+        {/* ==================================================================== */}
         <div
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="flex items-center gap-1 cursor-pointer group select-none"
+          onClick={() => {
+            if (onNavigate) onNavigate('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="flex items-center gap-2.5 cursor-pointer select-none group shrink-0"
         >
-          <span className="font-serif text-2xl font-bold tracking-tight text-slate-950 flex items-center">
-            Vellum
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#26F7F7] ml-0.5 shadow-[0_0_6px_#26F7F7]" />
-          </span>
+          <LexoraSymbol size={34} glow={true} />
+          <div className="flex flex-col">
+            <span className="font-serif text-xl sm:text-2xl font-black tracking-[0.16em] text-transparent bg-clip-text bg-gradient-to-r from-[#fff3bf] via-[#ffd700] to-[#dfb15b] uppercase">
+              LEXORA
+            </span>
+            <span className="text-[8px] sm:text-[9px] font-serif font-bold tracking-[0.3em] uppercase text-[#e5b95a] -mt-0.5">
+              Radiated Ink
+            </span>
+          </div>
         </div>
 
-        {/* Right Actions: User Name Pill + Circular Menu */}
+        {/* ==================================================================== */}
+        {/* Middle: Desktop Nav Links from Image 4 */}
+        {/* ==================================================================== */}
+        <nav className="hidden lg:flex items-center gap-6 text-xs font-serif font-semibold tracking-wide text-slate-300">
+          <button
+            onClick={() => {
+              if (onNavigate) onNavigate('home');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`relative py-1 transition-colors hover:text-[#f3ba38] cursor-pointer ${
+              currentScreen === 'home' ? 'text-[#f3ba38] font-bold' : ''
+            }`}
+          >
+            Home
+            {currentScreen === 'home' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#f3ba38] shadow-[0_0_8px_#f3ba38]" />
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              if (onNavigate) onNavigate('discover');
+            }}
+            className={`py-1 transition-colors hover:text-[#f3ba38] cursor-pointer ${
+              currentScreen === 'discover' ? 'text-[#f3ba38] font-bold' : ''
+            }`}
+          >
+            Explore
+          </button>
+
+          <button
+            onClick={() => {
+              if (onNavigate) onNavigate('discover');
+            }}
+            className="py-1 transition-colors hover:text-[#f3ba38] cursor-pointer"
+          >
+            Poetry
+          </button>
+
+          <button
+            onClick={() => {
+              if (onNavigate) onNavigate('library');
+            }}
+            className={`py-1 transition-colors hover:text-[#f3ba38] cursor-pointer ${
+              currentScreen === 'library' ? 'text-[#f3ba38] font-bold' : ''
+            }`}
+          >
+            Stories
+          </button>
+
+          <button
+            onClick={() => {
+              if (onNavigate) onNavigate('community');
+            }}
+            className={`py-1 transition-colors hover:text-[#f3ba38] cursor-pointer ${
+              currentScreen === 'community' ? 'text-[#f3ba38] font-bold' : ''
+            }`}
+          >
+            Essays
+          </button>
+
+          {onOpenArena && (
+            <button
+              onClick={onOpenArena}
+              className={`py-1 transition-colors hover:text-[#f3ba38] cursor-pointer flex items-center gap-1 ${
+                currentScreen === 'arena' ? 'text-[#f3ba38] font-bold' : 'text-amber-200/90'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 text-[#f3ba38]" />
+              <span>Challenges</span>
+            </button>
+          )}
+        </nav>
+
+        {/* ==================================================================== */}
+        {/* Search Pill from Image 4 */}
+        {/* ==================================================================== */}
+        <form
+          onSubmit={handleSearchSubmit}
+          className="hidden md:flex items-center flex-1 max-w-xs relative"
+        >
+          <Search className="w-4 h-4 text-amber-500/60 absolute left-3 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search stories, poems, authors..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onFocus={onOpenSearch}
+            className="w-full pl-9 pr-3 py-1.5 rounded-full bg-[#101217] text-xs text-slate-200 placeholder-slate-500 border border-amber-500/25 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40"
+          />
+        </form>
+
+        {/* ==================================================================== */}
+        {/* Right Actions: Login/Sign Up or Profile Pill + Menu */}
+        {/* ==================================================================== */}
         <div className="flex items-center gap-2.5">
           {currentUser ? (
             <button
               onClick={onOpenProfile}
-              className="px-4 py-2 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-medium text-xs tracking-tight shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#101217] hover:bg-[#181a24] text-white border border-[#e5b95a]/40 font-serif text-xs font-medium tracking-tight shadow-md transition-all cursor-pointer flex items-center gap-1.5"
               title="View Profile"
             >
-              <span>{currentUser.displayName || 'Shreyanshu'}</span>
+              <span className="truncate max-w-[100px] sm:max-w-none">
+                {currentUser.displayName || 'Shreyanshu'}
+              </span>
+              {currentUser.isFounder ? (
+                <FounderBadge size="xs" showLabel={false} />
+              ) : currentUser.isVerified ? (
+                <VerifiedBadge size="xs" />
+              ) : null}
             </button>
           ) : (
-            <button
-              onClick={() => onOpenAuth('login')}
-              className="px-4 py-2 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-medium text-xs tracking-tight shadow-xs transition-all cursor-pointer"
-            >
-              Log in
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onOpenAuth('login')}
+                className="text-xs font-serif text-slate-300 hover:text-[#f3ba38] px-3 py-1.5 cursor-pointer transition-colors"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => onOpenAuth('register')}
+                className="px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-[#f3ba38] hover:opacity-95 text-slate-950 font-serif font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Sign Up
+              </button>
+            </div>
           )}
 
           {/* Circular Hamburger Menu Button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="w-10 h-10 rounded-full border border-slate-200/90 hover:border-slate-300 hover:bg-slate-50 flex items-center justify-center text-slate-800 transition-all cursor-pointer"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-amber-500/30 hover:border-amber-400 bg-[#0e1017] hover:bg-[#161822] flex items-center justify-center text-amber-200 transition-all cursor-pointer"
             title="Menu"
             aria-label="Navigation Menu"
           >
@@ -87,15 +231,19 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
+      {/* ==================================================================== */}
       {/* Menu Drawer Dropdown */}
+      {/* ==================================================================== */}
       {menuOpen && (
-        <div className="absolute top-16 right-4 w-72 bg-white rounded-3xl shadow-2xl border border-slate-200 p-4 space-y-3 text-xs z-50 animate-fade-in">
+        <div className="absolute top-16 sm:top-20 right-4 w-76 bg-[#0a0b10] rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(243,186,56,0.25)] border border-amber-500/40 p-4 space-y-3 text-xs z-50 animate-fade-in text-slate-200">
           {/* User Status Card */}
           {currentUser && (
-            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+            <div className="p-3.5 bg-black/60 rounded-2xl border border-amber-500/25 space-y-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-slate-900 text-sm">{currentUser.displayName}</span>
+                  <span className="font-serif font-bold text-white text-sm">
+                    {currentUser.displayName}
+                  </span>
                   {currentUser.isFounder ? (
                     <FounderBadge size="sm" showLabel={false} />
                   ) : currentUser.isVerified ? (
@@ -103,7 +251,9 @@ export const Header: React.FC<HeaderProps> = ({
                   ) : null}
                 </div>
               </div>
-              <p className="text-slate-400 font-mono text-[11px] truncate">{currentUser.email}</p>
+              <p className="text-amber-500/70 font-mono text-[11px] truncate">
+                {currentUser.email}
+              </p>
             </div>
           )}
 
@@ -115,10 +265,75 @@ export const Header: React.FC<HeaderProps> = ({
                   setMenuOpen(false);
                   onOpenAdmin();
                 }}
-                className="w-full text-left px-3 py-2.5 rounded-xl bg-slate-950 text-white font-bold flex items-center gap-2 cursor-pointer hover:bg-slate-800"
+                className="w-full text-left px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-950/70 to-black text-amber-200 border border-amber-500/40 font-bold flex items-center gap-2 cursor-pointer hover:bg-black"
               >
-                <Sliders className="w-4 h-4 text-[#26F7F7]" />
+                <Sliders className="w-4 h-4 text-[#ffd700]" />
                 <span>Founder / Admin Console</span>
+              </button>
+            )}
+
+            {onOpenCertificateModal && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenCertificateModal();
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[#f3ba38] border border-amber-500/30 font-serif font-bold flex items-center gap-2.5 cursor-pointer"
+              >
+                <Award className="w-4 h-4 text-[#ffd700]" />
+                <span>Achievement Certificate (Image 3)</span>
+              </button>
+            )}
+
+            {onOpenEliteCardModal && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenEliteCardModal();
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl bg-black hover:bg-amber-950/30 text-amber-200 border border-amber-500/30 font-serif font-bold flex items-center gap-2.5 cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4 text-[#ffd700]" />
+                <span>Digital Elite Card (Image 2)</span>
+              </button>
+            )}
+
+            {onOpenArena && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenArena();
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl bg-amber-950/40 hover:bg-amber-900/40 text-amber-100 font-bold flex items-center gap-2.5 cursor-pointer border border-amber-400/40"
+              >
+                <Trophy className="w-4 h-4 text-[#ffd700]" />
+                <span>🏆 Literary Arena (Quarterly)</span>
+              </button>
+            )}
+
+            {onOpenPremiumHub && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenPremiumHub();
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 via-black to-black hover:opacity-90 text-amber-200 font-bold flex items-center gap-2.5 cursor-pointer border border-amber-400/30"
+              >
+                <Crown className="w-4 h-4 text-[#ffd700]" />
+                <span>👑 LEXORA Premium (16 Pillars)</span>
+              </button>
+            )}
+
+            {onOpenInkVault && (
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  onOpenInkVault();
+                }}
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 text-slate-300 font-semibold flex items-center gap-2.5 cursor-pointer"
+              >
+                <Lock className="w-4 h-4 text-[#f3ba38]" />
+                <span>🔐 InkVault (Encrypted Drafts)</span>
               </button>
             )}
 
@@ -127,10 +342,10 @@ export const Header: React.FC<HeaderProps> = ({
                 setMenuOpen(false);
                 onOpenSearch();
               }}
-              className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold flex items-center gap-2.5 cursor-pointer"
+              className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 text-slate-300 font-semibold flex items-center gap-2.5 cursor-pointer"
             >
-              <Search className="w-4 h-4 text-slate-400" />
-              <span>Explore Famous Writings</span>
+              <Search className="w-4 h-4 text-amber-500/70" />
+              <span>Explore Masterworks</span>
             </button>
 
             <button
@@ -138,14 +353,14 @@ export const Header: React.FC<HeaderProps> = ({
                 setMenuOpen(false);
                 onOpenNotifications();
               }}
-              className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold flex items-center justify-between cursor-pointer"
+              className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 text-slate-300 font-semibold flex items-center justify-between cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
-                <Bell className="w-4 h-4 text-slate-400" />
+                <Bell className="w-4 h-4 text-amber-500/70" />
                 <span>Notifications</span>
               </div>
               {unreadNotifs > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold">
                   {unreadNotifs}
                 </span>
               )}
@@ -157,10 +372,10 @@ export const Header: React.FC<HeaderProps> = ({
                   setMenuOpen(false);
                   onOpenUpgradeModal();
                 }}
-                className="w-full text-left px-3 py-2 rounded-xl bg-teal-50 hover:bg-teal-100/80 text-teal-950 font-bold flex items-center gap-2.5 cursor-pointer border border-[#26F7F7]/40"
+                className="w-full text-left px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-[#f3ba38] text-slate-950 font-bold flex items-center gap-2.5 cursor-pointer shadow-sm"
               >
-                <Sparkles className="w-4 h-4 text-teal-600" />
-                <span>Vellum Premium (₹299/mo)</span>
+                <Sparkles className="w-4 h-4" />
+                <span>Join VIP Elite (₹299/mo)</span>
               </button>
             )}
 
@@ -169,9 +384,9 @@ export const Header: React.FC<HeaderProps> = ({
                 setMenuOpen(false);
                 onOpenProfile();
               }}
-              className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 text-slate-700 font-semibold flex items-center gap-2.5 cursor-pointer"
+              className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 text-slate-300 font-semibold flex items-center gap-2.5 cursor-pointer"
             >
-              <UserIcon className="w-4 h-4 text-slate-400" />
+              <UserIcon className="w-4 h-4 text-amber-500/70" />
               <span>My Account &amp; Settings</span>
             </button>
 
@@ -181,10 +396,10 @@ export const Header: React.FC<HeaderProps> = ({
                   setMenuOpen(false);
                   onOpenIntro();
                 }}
-                className="w-full text-left px-3 py-2 rounded-xl hover:bg-cyan-50/80 text-cyan-950 font-semibold flex items-center gap-2.5 cursor-pointer"
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 text-amber-300 font-semibold flex items-center gap-2.5 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-[#00c9af]" />
-                <span>Vellum Intro</span>
+                <Sparkles className="w-4 h-4 text-[#ffd700]" />
+                <span>Replay LEXORA Intro</span>
               </button>
             )}
 
@@ -194,7 +409,7 @@ export const Header: React.FC<HeaderProps> = ({
                   setMenuOpen(false);
                   logout();
                 }}
-                className="w-full text-left px-3 py-2 rounded-xl hover:bg-red-50 text-red-600 font-semibold flex items-center gap-2.5 cursor-pointer"
+                className="w-full text-left px-3 py-2 rounded-xl hover:bg-red-500/10 text-red-400 font-semibold flex items-center gap-2.5 cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Sign Out</span>
@@ -202,9 +417,9 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Quick Account Switcher */}
-          <div className="pt-2 border-t border-slate-100 space-y-1.5">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block px-1">
+          {/* Quick Account Switcher (For testing) */}
+          <div className="pt-2 border-t border-amber-500/20 space-y-1.5">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-500/60 block px-1">
               Switch User (Demo):
             </span>
             <div className="flex flex-col gap-1">
@@ -216,14 +431,16 @@ export const Header: React.FC<HeaderProps> = ({
                     setMenuOpen(false);
                   }}
                   className={`px-2.5 py-1.5 rounded-xl border flex items-center justify-between text-left cursor-pointer transition-colors ${
-                    currentUser?.id === u.id ? 'bg-teal-50/70 border-[#26F7F7] font-bold' : 'border-slate-100 hover:bg-slate-50'
+                    currentUser?.id === u.id
+                      ? 'bg-amber-500/15 border-amber-400 text-amber-200 font-bold'
+                      : 'border-white/5 hover:bg-white/5 text-slate-300'
                   }`}
                 >
                   <span className="truncate text-xs">{u.displayName}</span>
                   {u.isFounder ? (
-                    <span className="text-[10px] font-mono font-bold text-teal-600">Founder</span>
+                    <FounderBadge size="xs" showLabel={true} />
                   ) : (
-                    <span className="text-[10px] text-slate-400 capitalize">{u.role}</span>
+                    <span className="text-[10px] text-slate-500 capitalize">{u.role}</span>
                   )}
                 </button>
               ))}

@@ -1,6 +1,6 @@
 {
-  "name": "Vellum",
-  "description": "A premium mobile-first storytelling and article publishing platform for serialized reading, independent voices, and thoughtful readers.",
+  "name": "LEXORA",
+  "description": "Beyond the Loop — Radiated Ink. Every Voice Has a Universe. An elite literary publishing platform, quarterly challenge arena, and premium authoring suite founded by CEO Shreyanshu Mishra.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

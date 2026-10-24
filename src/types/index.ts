@@ -15,6 +15,16 @@ export interface User {
   };
   role: UserRole;
   isVerified: boolean;
+  verifiedUntil?: string; // 1-month free verification expiration date
+  hasCrownBadge?: boolean; // 👑 Floating crown badge above PFP for Arena 1st place winners
+  challengeWins?: number;
+  signatureCard?: {
+    penName: string;
+    biography: string;
+    motto: string;
+    favoriteGenre: string;
+    masterpieceTitle: string;
+  };
   isFounder: boolean;
   isPremiumSubscriber: boolean;
   subscriptionExpiry?: string;
@@ -35,6 +45,7 @@ export interface StoryPart {
   status: 'draft' | 'published';
   createdAt: string;
   updatedAt: string;
+  aiAssessment?: AIAssessmentResult;
 }
 
 export interface Story {
@@ -48,12 +59,15 @@ export interface Story {
   authorAvatar: string;
   authorIsVerified?: boolean;
   authorIsFounder?: boolean;
+  authorHasCrownBadge?: boolean;
   category: string;
   genre: string;
   language: string;
   tags: string[];
   status: StoryStatus;
   isFeatured: boolean;
+  isCastedOnHomeUntil?: string; // Pinned to home page for 1 week upon winning 1st place
+  challengeEntryId?: string;
   ratingAverage: number;
   ratingCount: number;
   readerCount: number;
@@ -234,16 +248,103 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export interface AICorrectionSuggestion {
+  id: string;
+  originalText: string;
+  correctedText: string;
+  explanation: string;
+  category: 'grammar' | 'prose_flow' | 'preserve_voice' | 'rhyme_meter';
+  applied?: boolean;
+}
+
 export interface AIAssessmentResult {
   indication: 'Low indication of AI assistance' | 'Possible AI assistance' | 'High indication of AI assistance';
   confidenceScore: number; // e.g. 84
   spamScore: number; // 0 to 100
   originalityScore: number; // 0 to 100
+  aiWritingRate: number; // 0 to 100 percentage
+  isDisqualified: boolean; // TRUE if aiWritingRate >= 85%
+  disqualificationReason?: string;
   potentialPlagiarismConcern: boolean;
   unsafeOrProhibitedContent: boolean;
   flags: string[];
   editorialFeedback: string;
+  aiCorrections?: AICorrectionSuggestion[];
   analyzedAt: string;
+}
+
+export interface ChallengeSubmission {
+  id: string;
+  challengeId: string;
+  storyId: string;
+  storyTitle: string;
+  storySynopsis: string;
+  storyCover: string;
+  authorId: string;
+  authorName: string;
+  authorUsername: string;
+  authorAvatar: string;
+  contentType: 'Story' | 'Poem' | 'Article';
+  submittedAt: string;
+  aiGrading: {
+    overallScore: number; // 0 to 100
+    creativityScore: number;
+    proseScore: number;
+    emotionalDepthScore: number;
+    aiWritingRate: number; // 0 to 100
+    isDisqualified: boolean; // >= 85%
+    disqualificationReason?: string;
+    editorialCritique: string;
+    evaluatedAt: string;
+  };
+  ceoVerification?: {
+    isVerifiedByCEO: boolean;
+    rank?: 1 | 2 | 3;
+    ceoRemarks?: string;
+    verifiedAt?: string;
+  };
+}
+
+export interface Challenge {
+  id: string;
+  quarter: 'Q1' | 'Q2' | 'Q3' | 'Q4';
+  seasonName: string; // e.g. "Vernal Equinox Showcase"
+  year: number;
+  title: string;
+  themePrompt: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'judging' | 'completed';
+  grandPrize: string;
+  submissionsCount: number;
+  winnerSubmissionId?: string;
+  winnerAuthorId?: string;
+  winnerStoryId?: string;
+}
+
+export interface InkVaultItem {
+  id: string;
+  userId: string;
+  title: string;
+  type: 'manuscript' | 'journal' | 'poem_idea' | 'backup';
+  content: string;
+  wordCount: number;
+  tags: string[];
+  isEncrypted: boolean;
+  lastVaultedAt: string;
+}
+
+export interface WritersCircleGroup {
+  id: string;
+  name: string;
+  description: string;
+  genre: string;
+  membersCount: number;
+  isPrivate: boolean;
+  leaderId: string;
+  leaderName: string;
+  recentActivity: string;
 }
 
 export interface PlatformSettings {
@@ -257,3 +358,37 @@ export interface PlatformSettings {
   certificateMinStories: number; // 20
   certificateMinRating: number; // 4.0
 }
+
+export interface ContentCategory {
+  id: string;
+  name: string;
+  emoji: string;
+}
+
+export const LISTING_CATEGORIES: ContentCategory[] = [
+  { id: 'nature', name: 'Nature', emoji: '🌲' },
+  { id: 'opinion', name: 'Opinion', emoji: '🕵️‍♂️' },
+  { id: 'fantasy', name: 'Fantasy', emoji: '🫧' },
+  { id: 'society', name: 'Society', emoji: '🖼️' },
+  { id: 'technology', name: 'Technology', emoji: '✈️' },
+  { id: 'science', name: 'Science', emoji: '🧬' },
+  { id: 'education', name: 'Education', emoji: '👨‍🏫' },
+  { id: 'entertainment', name: 'Entertainment', emoji: '🎢' },
+  { id: 'thriller', name: 'Thriller', emoji: '🏚️' },
+  { id: 'culture', name: 'Culture', emoji: '🎑' },
+  { id: 'lifestyle', name: 'Lifestyle', emoji: '🏡' },
+  { id: 'sports', name: 'Sports', emoji: '🏏' },
+  { id: 'personal_stories', name: 'Personal Stories', emoji: '⛱️' },
+  { id: 'romance', name: 'Romance', emoji: '👥' },
+  { id: 'science_fiction', name: 'Science Fiction', emoji: '📺' },
+  { id: 'current_affairs', name: 'Current Affairs', emoji: '👀' },
+  { id: 'poetry', name: 'Poetry', emoji: '✍🏻' },
+  { id: 'reformative', name: 'Reformative', emoji: '👣' },
+  { id: 'horror', name: 'Horror', emoji: '🫣' },
+  { id: 'mystery', name: 'Mystery', emoji: '💭' },
+  { id: 'financial_statistics', name: 'Financial Statistics', emoji: '📊' },
+  { id: 'short_stories', name: 'Short Stories', emoji: '📝' },
+  { id: 'biography', name: 'Biography', emoji: '👤' },
+];
+
+export const DEFAULT_AVATAR = '/assets/aistudio/IMG_6033_dd143268.jpeg';

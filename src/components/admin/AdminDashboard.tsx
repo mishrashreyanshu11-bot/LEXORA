@@ -198,7 +198,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-1">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Subscriptions</span>
                 <p className="text-2xl md:text-3xl font-extrabold font-mono text-slate-900">{activeSubsCount}</p>
-                <p className="text-[11px] text-slate-400">₹299/mo Vellum Premium</p>
+                <p className="text-[11px] text-slate-400">₹299/mo LEXORA Premium</p>
               </div>
 
               <div className="p-5 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-1">
@@ -292,7 +292,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     >
                       <div className="space-y-0.5">
                         <p className="font-bold text-slate-900">
-                          {p.productType === 'monthly_subscription' ? '₹299/mo Vellum Premium' : `₹19 Unlock: ${p.storyTitle || 'Story'}`}
+                          {p.productType === 'monthly_subscription' ? '₹299/mo LEXORA Premium' : `₹19 Unlock: ${p.storyTitle || 'Story'}`}
                         </p>
                         <p className="font-mono text-slate-500 text-[11px]">
                           Ref: {p.transactionRef} • {p.userEmail}
@@ -739,7 +739,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {activeTab === 'certificates' && (
           <div className="space-y-6 animate-fade-in">
             <div className="space-y-1">
-              <h2 className="text-xl font-bold font-sans-modern">Off Script / Vellum Writer Certificates</h2>
+              <h2 className="text-xl font-bold font-sans-modern">Off Script / LEXORA Writer Certificates</h2>
               <p className="text-xs text-slate-500">
                 Writers qualify automatically after completing at least 20 serialized stories with an average rating &gt;= 4.0.
               </p>
