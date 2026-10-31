@@ -87,7 +87,7 @@ export function checkPartAccess(params: {
   }
 
   // 2. Founder / Admin bypass
-  if (user && (user.isFounder || user.role === 'founder' || user.email.toLowerCase() === settings.founderEmail.toLowerCase())) {
+  if (user && (user.isFounder || user.role === 'founder' || (user.email && settings?.founderEmail && user.email.toLowerCase() === settings.founderEmail.toLowerCase()))) {
     return {
       canAccess: true,
       reason: 'founder',

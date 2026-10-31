@@ -5,14 +5,25 @@ export interface User {
   email: string;
   username: string;
   displayName: string;
+  password?: string;
+  name?: string;
   bio?: string;
+  instagramHandle?: string;
   avatar: string;
-  dob: string; // YYYY-MM-DD - Mandatory during registration
+  dob: string; // YYYY-MM-DD (e.g. 2000-10-26) - Mandatory
+  dobLastEditedAt?: string; // Timestamp of last DOB edit (max once per month)
+  country?: string;
+  state?: string;
+  city?: string;
+  readingThemePreference?: 'golden' | 'dark' | 'light';
   socialLinks?: {
     twitter?: string;
     instagram?: string;
     website?: string;
   };
+  preferredReadingLanguage?: string;
+  preferredWritingLanguage?: string;
+  preferredUiLanguage?: string;
   role: UserRole;
   isVerified: boolean;
   verifiedUntil?: string; // 1-month free verification expiration date
@@ -29,10 +40,63 @@ export interface User {
   isPremiumSubscriber: boolean;
   subscriptionExpiry?: string;
   followingIds: string[];
+  audiobookHistory?: Array<{
+    storyId: string;
+    storyTitle: string;
+    coverImage: string;
+    authorName: string;
+    partNumber: number;
+    partTitle: string;
+    progress: number;
+    speed: number;
+    voice: string;
+    language: string;
+    updatedAt: string;
+  }>;
   createdAt: string;
 }
 
 export type StoryStatus = 'draft' | 'published' | 'hidden';
+export type AgeRating = '10+' | '13+' | '16+' | '18+';
+export type StoryVisibilityMode = 'public' | 'private_recipient' | 'regional';
+export type DedicationTemplateType = 'romantic' | 'friendship' | 'birthday' | 'anniversary' | 'family' | 'appreciation' | 'custom';
+
+export interface PrivateDedicationInfo {
+  recipientName: string;
+  personalizedTitle?: string;
+  templateType?: DedicationTemplateType;
+  personalMessage?: string;
+  digitalLetter?: string;
+  customEndingMessage?: string;
+  allowComments?: boolean;
+  allowReactions?: boolean;
+  expiresAt?: string;
+  revoked?: boolean;
+}
+
+export interface RegionalTargetInfo {
+  type: 'world' | 'country' | 'state' | 'city';
+  country?: string;
+  state?: string;
+  city?: string;
+  selectedCountries?: string[];
+  selectedCities?: string[];
+}
+
+export interface StoryGiftInfo {
+  recipientName: string;
+  recipientUsername?: string;
+  giftCover?: string;
+  customDedication?: string;
+  greetingCard?: string;
+  scheduledDeliveryAt?: string;
+  templateType?: string;
+  finalMessage?: string;
+  isOpened?: boolean;
+  openedAt?: string;
+  recipientResponse?: string;
+  isDeclined?: boolean;
+}
 
 export interface StoryPart {
   id: string;
@@ -58,14 +122,45 @@ export interface Story {
   authorUsername: string;
   authorAvatar: string;
   authorIsVerified?: boolean;
+  authorRole?: UserRole;
   authorIsFounder?: boolean;
   authorHasCrownBadge?: boolean;
   category: string;
   genre: string;
   language: string;
+  originalLanguage?: string;
+  isPoem?: boolean;
+  ageRating?: AgeRating; // Default '10+', can be '13+', '16+', '18+'
+  isGoldenLibrary?: boolean; // Exclusive metallic gold tier for Elite members
+  goldenLibraryStatus?: 'eligible' | 'in_review' | 'included' | 'none';
+  confidenceRating?: number; // Wilson/Bayesian confidence adjusted rating
+  visibilityMode?: StoryVisibilityMode; // 'public' | 'private_recipient' | 'regional'
+  privateRecipients?: Array<{
+    username: string;
+    email?: string;
+    accepted?: boolean;
+    acceptedAt?: string;
+  }>;
+  privateDedication?: PrivateDedicationInfo;
+  regionalTarget?: RegionalTargetInfo;
+  giftDetails?: StoryGiftInfo;
+  audiobookEnabled?: boolean;
+  audiobookVoice?: string;
   tags: string[];
   status: StoryStatus;
   isFeatured: boolean;
+  featuredCategory?: string; // e.g. 'Featured Stories', 'Romance', 'Poetry', 'Editor’s Picks'
+  featuredOrder?: number;
+  isPinned?: boolean;
+  featureRequest?: {
+    requestedAt: string;
+    requestedCategory: string;
+    status: 'pending' | 'approved' | 'rejected';
+    reviewedAt?: string;
+    reviewerRemarks?: string;
+  };
+  coverFit?: 'contain' | 'cover';
+  coverPosition?: 'center' | 'top' | 'bottom';
   isCastedOnHomeUntil?: string; // Pinned to home page for 1 week upon winning 1st place
   challengeEntryId?: string;
   ratingAverage: number;
@@ -99,7 +194,36 @@ export interface ReadingProgress {
   updatedAt: string;
 }
 
-export type ProductType = 'story_unlock' | 'monthly_subscription';
+export type ProductType = 'story_unlock' | 'monthly_subscription' | 'yearly_subscription';
+
+export type ElitePlanType = 'monthly' | 'yearly' | 'monthly_299' | 'yearly_2149';
+
+export interface EliteSubscriptionRecord {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  plan: ElitePlanType;
+  amount: number; // 299 for monthly, 2149 for yearly
+  paymentMethod: 'upi_manual' | 'upi_qr' | 'razorpay_direct';
+  transactionRef: string; // 12-digit UTR or transaction ID
+  bankConfirmed: boolean; // Confirmed in bank/merchant records, never trust screenshots
+  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  isDuplicate: boolean; // Flagged if UTR is reused
+  duplicateOfId?: string;
+  submittedAt: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  adminNotes?: string;
+  rejectionReason?: string;
+  subscriptionExpiresAt?: string; // 30 days for monthly, 365 days for yearly
+  auditHistory: Array<{
+    timestamp: string;
+    action: string;
+    actor: string;
+    details: string;
+  }>;
+}
 
 export interface PaymentRecord {
   id: string;
@@ -109,13 +233,16 @@ export interface PaymentRecord {
   productType: ProductType;
   storyId?: string;
   storyTitle?: string;
-  amount: number; // 19 or 299
+  amount: number; // 19, 299, or 2149
   transactionRef: string;
   paymentDestination: string; // "7852931077@fam"
-  status: 'pending_verification' | 'verified' | 'rejected';
+  status: 'pending_verification' | 'verified' | 'rejected' | 'expired';
+  bankConfirmed?: boolean;
+  isDuplicate?: boolean;
   verificationNotes?: string;
   createdAt: string;
   verifiedAt?: string;
+  expiresAt?: string;
 }
 
 export interface StoryPurchase {
@@ -391,4 +518,4 @@ export const LISTING_CATEGORIES: ContentCategory[] = [
   { id: 'biography', name: 'Biography', emoji: '👤' },
 ];
 
-export const DEFAULT_AVATAR = '/assets/aistudio/IMG_6033_dd143268.jpeg';
+export const DEFAULT_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none"><rect width="200" height="200" rx="100" fill="%230e1017"/><circle cx="100" cy="100" r="96" stroke="%23D4AF37" stroke-width="2" stroke-opacity="0.4"/><circle cx="100" cy="76" r="30" fill="%231a1d26" stroke="%23D4AF37" stroke-width="2" stroke-opacity="0.6"/><path d="M48 168c0-30 24-50 52-50s52 20 52 50" fill="%231a1d26" stroke="%23D4AF37" stroke-width="2" stroke-opacity="0.6"/></svg>`;

@@ -4,6 +4,8 @@ import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../context/AuthContext';
 import { FounderBadge, VerifiedBadge, CrownBadge } from '../common/FounderBadge';
 import { LexoraSymbol } from '../common/LexoraSymbol';
+import { useTheme } from '../../context/ThemeContext';
+import { AuthenticFeaturedDiscovery } from './AuthenticFeaturedDiscovery';
 import {
   Sparkles,
   Edit3,
@@ -24,6 +26,8 @@ import {
   Eye,
   CheckCircle,
   ExternalLink,
+  ShieldCheck,
+  Crown,
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -36,6 +40,12 @@ interface HomePageProps {
   onOpenArena?: () => void;
   onOpenCertificateModal?: () => void;
   onOpenEliteCardModal?: () => void;
+  onOpenAuth?: (mode?: 'login' | 'register') => void;
+  onEditStory?: (story: Story) => void;
+  onOpenGoldenLibrary?: () => void;
+  onOpenLiteraryPassport?: () => void;
+  onOpenLegal?: () => void;
+  onOpenHelpCenter?: () => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -48,275 +58,623 @@ export const HomePage: React.FC<HomePageProps> = ({
   onOpenArena,
   onOpenCertificateModal,
   onOpenEliteCardModal,
+  onOpenAuth,
+  onEditStory,
+  onOpenGoldenLibrary,
+  onOpenLiteraryPassport,
+  onOpenLegal,
+  onOpenHelpCenter,
 }) => {
-  const { stories, certificates } = useStories();
-  const { currentUser } = useAuth();
+  const { stories, certificates, getStoryParts, featuredHeroStoryId, setFeaturedHeroStory } = useStories();
+  const { currentUser, isFounder, canAccessAgeRating } = useAuth();
+  const { isDark } = useTheme();
 
-  const [bookmarkedStories, setBookmarkedStories] = useState<{ [id: string]: boolean }>({});
-  const [likedStories, setLikedStories] = useState<{ [id: string]: number }>({
-    story_unspoken_sky: 2400,
-    story_the_last_letter: 12500,
-    story_beyond_the_noise: 8300,
-    story_monsoon_again: 6200,
-  });
+  // Flagship masterpiece or Admin Featured Story
+  const heroStory = (featuredHeroStoryId && stories.find(s => s.id === featuredHeroStoryId)) || stories.find(s => s.id === 'story_beyond_the_loop') || stories[0];
+  const heroParts = heroStory ? getStoryParts(heroStory.id) : [];
 
-  const toggleBookmark = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setBookmarkedStories(prev => ({ ...prev, [id]: !prev[id] }));
+  const handleReadClick = (storyId: string, partNumber: number = 1) => {
+    if (!currentUser) {
+      if (onOpenAuth) onOpenAuth('login');
+      return;
+    }
+    const target = stories.find(s => s.id === storyId);
+    if (target && !canAccessAgeRating(target.ageRating || '10+')) {
+      onSelectStory(storyId);
+      return;
+    }
+    onReadPart(storyId, partNumber);
   };
 
-  const toggleLike = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLikedStories(prev => ({
-      ...prev,
-      [id]: (prev[id] || 0) + 1,
-    }));
+  const handleStartWritingClick = () => {
+    if (!currentUser) {
+      if (onOpenAuth) onOpenAuth('login');
+      return;
+    }
+    if (onOpenCreateStory) onOpenCreateStory();
   };
 
-  // Find reigning Champion story casted on home page for 1 week
-  const castedChampionStory =
-    stories.find(s => s.isCastedOnHomeUntil && new Date(s.isCastedOnHomeUntil) > new Date()) ||
-    stories.find(s => s.id === 'story_chronosphere_florence');
+  const [bookmarked, setBookmarked] = useState(false);
+  const [likesCount, setLikesCount] = useState(14200);
+  const [hasLiked, setHasLiked] = useState(false);
 
-  // Category navigation handlers
+  const toggleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBookmarked(!bookmarked);
+  };
+
+  const toggleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!hasLiked) {
+      setLikesCount(prev => prev + 1);
+      setHasLiked(true);
+    } else {
+      setLikesCount(prev => prev - 1);
+      setHasLiked(false);
+    }
+  };
+
   const handleCategoryClick = (categoryName: string) => {
     if (categoryName.toLowerCase() === 'challenges') {
       if (onOpenArena) onOpenArena();
       return;
     }
-    const matchingStory = stories.find(
-      s => s.category.toLowerCase().includes(categoryName.toLowerCase()) ||
-           s.tags.some(t => t.toLowerCase().includes(categoryName.toLowerCase()))
-    );
-    if (matchingStory) {
-      onSelectStory(matchingStory.id);
-    } else {
-      const el = document.getElementById('literary-worlds-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (heroStory) {
+      onSelectStory(heroStory.id);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#06070a] text-slate-100 selection:bg-[#e5b95a]/30 selection:text-amber-100 pb-28">
+    <div
+      className={`relative min-h-screen pb-28 overflow-x-hidden transition-colors ${
+        isDark
+          ? 'bg-[#000000] text-slate-100 selection:bg-[#D4AF37]/30 selection:text-amber-100'
+          : 'bg-[#ffffff] text-[#182B32] selection:bg-[#26F7F7]/30 selection:text-[#182B32]'
+      }`}
+    >
       {/* ==================================================================== */}
-      {/* 1. HERO SECTION: EXACT REPLICA OF IMAGE 4 */}
+      {/* BLENDED TOP-RIGHT CORNER WATERMARK — MAINTAINING LEXORA SYMBOL */}
       {/* ==================================================================== */}
-      <section className="relative overflow-hidden border-b border-[#e5b95a]/20 bg-gradient-to-b from-[#090b10] via-[#06070a] to-[#040507]">
-        {/* Subtle Ambient Gold Starlight */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div
+        className={`fixed top-0 right-0 w-64 h-64 sm:w-96 sm:h-96 pointer-events-none z-0 overflow-hidden rounded-full [mask-image:radial-gradient(circle_at_top_right,black_40%,transparent_75%)] ${
+          isDark
+            ? 'opacity-25 mix-blend-screen'
+            : 'opacity-15 mix-blend-multiply'
+        }`}
+      >
+        <img
+          src="/assets/aistudio/IMG_6186_9a1064a3.jpeg"
+          alt="LEXORA Symbol Top-Right Corner Watermark"
+          className="w-full h-full object-cover filter contrast-150 brightness-95 saturate-150"
+        />
+      </div>
 
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-8 sm:pt-14 pb-12 sm:pb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      {/* ==================================================================== */}
+      {/* 1. HERO SECTION (BEYOND THE LOOP THEME) */}
+      {/* ==================================================================== */}
+      <section
+        style={
+          !isDark
+            ? {
+                background:
+                  'radial-gradient(ellipse at 75% 35%, rgba(38,247,247,0.19) 0%, rgba(207,255,255,0.13) 38%, transparent 75%), #FFFFFF',
+              }
+            : undefined
+        }
+        className={`relative overflow-hidden border-b transition-colors ${
+          isDark
+            ? 'border-[#D4AF37]/20 bg-gradient-to-b from-[#090b10] via-[#000000] to-[#040507]'
+            : 'border-[#D9F5F5]'
+        }`}
+      >
+        {/* Subtle Ambient Starlight */}
+        <div
+          className={`absolute top-0 right-1/4 w-96 h-96 rounded-full blur-3xl pointer-events-none ${
+            isDark ? 'bg-amber-500/10' : 'bg-[#26F7F7]/15'
+          }`}
+        />
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 pt-8 sm:pt-14 pb-12 sm:pb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left Column: Headlines, Copy & CTAs */}
           <div className="lg:col-span-7 space-y-6 z-10 text-left">
-            {/* Header Brand Subtitle from Image 4 */}
+            {/* Header Brand Subtitle */}
             <div className="space-y-1">
-              <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white leading-[1.15]">
+              <h1
+                className={`font-serif text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.15] ${
+                  isDark ? 'text-white' : 'text-[#182B32]'
+                }`}
+              >
                 Every Voice Has a{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ffe494] via-[#f3ba38] to-[#d4af37] drop-shadow-[0_2px_15px_rgba(243,186,56,0.4)]">
+                <span
+                  className={
+                    isDark
+                      ? 'text-transparent bg-clip-text bg-gradient-to-r from-[#ffe494] via-[#f3ba38] to-[#d4af37] drop-shadow-[0_2px_15px_rgba(243,186,56,0.4)]'
+                      : 'text-transparent bg-clip-text bg-gradient-to-r from-[#0e7490] via-[#0891b2] to-[#0284c7]'
+                  }
+                >
                   Universe.
                 </span>
               </h1>
-              <p className="font-serif text-xl sm:text-2xl font-semibold tracking-wide text-amber-200/90 pt-1">
-                Read. Write. Connect.
+              <p
+                className={`font-serif text-lg sm:text-2xl font-semibold tracking-wide pt-1 ${
+                  isDark ? 'text-amber-200/90' : 'text-[#0891b2]'
+                }`}
+              >
+                Beyond the Loop!
               </p>
             </div>
 
             {/* Description */}
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl font-sans">
-              LEXORA is a home for dreamers, thinkers, poets and storytellers. Discover powerful words, share your own, and be part of a community that celebrates creativity.
+            <p
+              className={`text-xs sm:text-base leading-relaxed max-w-xl font-sans ${
+                isDark ? 'text-slate-300' : 'text-[#64748B]'
+              }`}
+            >
+              LEXORA is a sanctuary for dreamers, thinkers, and serialized storytellers. Words find their worth, and creativity finds its home beyond the ordinary loop.
             </p>
 
-            {/* CTAs matching Image 4 */}
-            <div className="flex flex-wrap items-center gap-3.5 pt-2">
-              <button
-                onClick={() => {
-                  const el = document.getElementById('literary-worlds-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className="px-6 py-3.5 rounded-full bg-gradient-to-r from-amber-400 via-[#f3ba38] to-amber-500 hover:brightness-110 text-slate-950 font-bold text-xs sm:text-sm tracking-tight flex items-center gap-2 shadow-[0_4px_18px_rgba(243,186,56,0.35)] transition-all cursor-pointer"
-              >
-                <span>Explore the Library</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={onOpenCreateStory}
-                className="px-6 py-3.5 rounded-full bg-black/60 hover:bg-black text-amber-300 hover:text-white border border-[#e5b95a]/60 font-semibold text-xs sm:text-sm tracking-tight flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-              >
-                <span>Start Writing</span>
-                <Edit3 className="w-4 h-4 text-[#f3ba38]" />
-              </button>
-
-              {onOpenArena && (
+            {/* CTAs - Responsive without clipping */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center flex-wrap gap-2.5 sm:gap-3.5 pt-2 w-full max-w-full">
+              {heroStory && (
                 <button
-                  onClick={onOpenArena}
-                  className="px-5 py-3.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-xs sm:text-sm tracking-tight flex items-center gap-1.5 transition-all cursor-pointer"
+                  onClick={() => onSelectStory(heroStory.id)}
+                  className={`w-full sm:w-auto px-5 sm:px-6 py-3.5 rounded-full font-bold text-xs sm:text-sm tracking-tight flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    isDark
+                      ? 'bg-gradient-to-r from-amber-400 via-[#f3ba38] to-amber-500 hover:brightness-110 text-slate-950 shadow-[0_4px_18px_rgba(243,186,56,0.35)]'
+                      : 'bg-[#26F7F7] hover:bg-[#00E5E5] text-[#182B32] shadow-[0_4px_16px_rgba(38,247,247,0.35)]'
+                  }`}
                 >
-                  <Trophy className="w-4 h-4 text-[#f3ba38]" />
-                  <span>Quarterly Arena</span>
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span className="truncate">Preview "Beyond the Loop"</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </button>
+              )}
+
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto flex-wrap">
+                <button
+                  onClick={handleStartWritingClick}
+                  className={`flex-1 sm:flex-none px-4 sm:px-6 py-3.5 rounded-full font-semibold text-xs sm:text-sm tracking-tight flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm ${
+                    isDark
+                      ? 'bg-black/60 hover:bg-black text-amber-300 hover:text-white border border-[#e5b95a]/60'
+                      : 'bg-white hover:bg-[#E9FFFF] text-[#182B32] border border-[#D9F5F5]'
+                  }`}
+                >
+                  <span className="truncate">Start Writing</span>
+                  <Edit3 className={`w-4 h-4 shrink-0 ${isDark ? 'text-[#f3ba38]' : 'text-[#0891b2]'}`} />
+                </button>
+
+                {isFounder && onEditStory && heroStory && (
+                  <button
+                    onClick={() => onEditStory(heroStory)}
+                    className={`flex-1 sm:flex-none px-3.5 sm:px-5 py-3.5 rounded-full font-serif font-bold text-xs sm:text-sm tracking-tight flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition-all ${
+                      isDark
+                        ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/50'
+                        : 'bg-[#F7FFFF] hover:bg-[#E9FFFF] text-[#182B32] border border-[#D9F5F5]'
+                    }`}
+                  >
+                    <Edit3 className={`w-4 h-4 shrink-0 ${isDark ? 'text-[#ffd700]' : 'text-[#0891b2]'}`} />
+                    <span className="truncate">Edit</span>
+                  </button>
+                )}
+
+                {onOpenEliteCardModal && (
+                  <button
+                    onClick={onOpenEliteCardModal}
+                    className={`flex-1 sm:flex-none px-3.5 sm:px-5 py-3.5 rounded-full font-semibold text-xs sm:text-sm tracking-tight flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      isDark
+                        ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : 'bg-[#F7FFFF] hover:bg-[#E9FFFF] text-[#182B32] border border-[#D9F5F5]'
+                    }`}
+                  >
+                    <Crown className={`w-4 h-4 shrink-0 ${isDark ? 'text-[#ffd700]' : 'text-[#0891b2]'}`} />
+                    <span className="truncate">Elite Pass</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Feature Access Badges (Golden Library & Literary Passport) */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              {onOpenGoldenLibrary && (
+                <button
+                  onClick={onOpenGoldenLibrary}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-serif font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
+                    isDark
+                      ? 'bg-gradient-to-r from-amber-500/20 to-black border border-amber-400/40 text-amber-300 hover:bg-amber-500/30'
+                      : 'bg-[#F7FFFF] hover:bg-[#E9FFFF] border border-[#D9F5F5] text-[#182B32]'
+                  }`}
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${isDark ? 'text-[#ffd700]' : 'text-[#0891b2]'}`} />
+                  <span>✦ Golden Library (Curated Bayesian Classics)</span>
+                </button>
+              )}
+              {onOpenLiteraryPassport && (
+                <button
+                  onClick={onOpenLiteraryPassport}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-serif font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                    isDark
+                      ? 'bg-indigo-950/40 border border-indigo-400/40 text-indigo-200 hover:bg-indigo-900/50'
+                      : 'bg-[#F7FFFF] hover:bg-[#E9FFFF] border border-[#D9F5F5] text-[#182B32]'
+                  }`}
+                >
+                  <Gift className={`w-3.5 h-3.5 ${isDark ? 'text-indigo-300' : 'text-[#0891b2]'}`} />
+                  <span>✈ Literary Passport (Dedicate &amp; Gift)</span>
                 </button>
               )}
             </div>
 
-            {/* Stats Row from Image 4 */}
-            <div className="pt-4 flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-medium text-slate-400 border-t border-amber-500/15">
+            {/* Stats Row */}
+            <div
+              className={`pt-4 flex flex-wrap items-center gap-6 sm:gap-8 text-xs font-medium border-t ${
+                isDark ? 'text-slate-400 border-amber-500/15' : 'text-[#64748B] border-[#D9F5F5]'
+              }`}
+            >
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#f3ba38]" />
-                <span className="font-bold text-slate-200">10K+</span>
+                <Users className={`w-4 h-4 ${isDark ? 'text-[#f3ba38]' : 'text-[#0891b2]'}`} />
+                <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-[#182B32]'}`}>10K+</span>
                 <span>Writers</span>
               </div>
               <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-[#f3ba38]" />
-                <span className="font-bold text-slate-200">50K+</span>
+                <Eye className={`w-4 h-4 ${isDark ? 'text-[#f3ba38]' : 'text-[#0891b2]'}`} />
+                <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-[#182B32]'}`}>50K+</span>
                 <span>Readers</span>
               </div>
               <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-[#f3ba38]" />
-                <span className="font-bold text-slate-200">100+</span>
-                <span>Stories</span>
+                <Star
+                  className={`w-4 h-4 ${
+                    isDark ? 'text-[#f3ba38] fill-[#f3ba38]' : 'text-[#0891b2] fill-[#26F7F7]'
+                  }`}
+                />
+                <span className={`font-bold ${isDark ? 'text-slate-200' : 'text-[#182B32]'}`}>4.9 / 5.0</span>
+                <span>Elite Rating</span>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Panoramic Artwork with Fantasy Citadel & Reader */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative rounded-3xl overflow-hidden border border-[#e5b95a]/40 shadow-[0_12px_45px_rgba(0,0,0,0.85)] group">
-              <img
-                src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1200&q=80"
-                alt="LEXORA Literary Universe"
-                className="w-full h-80 sm:h-96 object-cover transform transition-transform duration-700 group-hover:scale-105"
-              />
-              {/* Warm Golden Sunset Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#06070a] via-amber-950/20 to-transparent" />
+          {/* Right Column: Hero Art with Full Visibility & Admin Pinning */}
+          <div className="lg:col-span-5 relative flex flex-col items-center">
+            <div
+              className={`relative w-full max-w-sm sm:max-w-md rounded-3xl overflow-hidden border-2 flex flex-col group transition-all ${
+                isDark
+                  ? 'border-[#e5b95a]/50 shadow-[0_16px_50px_rgba(0,0,0,0.95)] bg-gradient-to-b from-[#0c0d12] via-[#050608] to-black'
+                  : 'border-[#D9F5F5] shadow-[0_16px_40px_rgba(38,247,247,0.18)] bg-white'
+              }`}
+            >
+              {/* Cover Artwork Container — Aspect 2:3 with full image preservation */}
+              <div className="relative w-full aspect-[2/3] overflow-hidden bg-black flex items-center justify-center p-1">
+                <img
+                  src={heroStory?.coverImage || '/assets/aistudio/6EFD680D-3328-45B5-BDBD-1B2D6271E557_fd4e64c3.png'}
+                  alt={heroStory?.title || 'Beyond the Loop Cover'}
+                  className={`w-full h-full ${
+                    heroStory?.coverFit === 'cover' ? 'object-cover' : 'object-contain'
+                  } ${
+                    heroStory?.coverPosition === 'top'
+                      ? 'object-top'
+                      : heroStory?.coverPosition === 'bottom'
+                      ? 'object-bottom'
+                      : 'object-center'
+                  } rounded-2xl transition-transform duration-500 group-hover:scale-[1.01]`}
+                />
 
-              {/* Inscribed Motto on art from Image 4 */}
-              <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-amber-400/30">
-                <p className="font-serif italic text-xs text-amber-200 drop-shadow-sm">
-                  "Not just words... worlds."
-                </p>
+                <div
+                  className={`absolute top-3 right-3 backdrop-blur-md px-3 py-1 rounded-full border shadow-sm ${
+                    isDark
+                      ? 'bg-black/85 border-amber-400/40 text-amber-200'
+                      : 'bg-white/95 border-[#D9F5F5] text-[#182B32]'
+                  }`}
+                >
+                  <p className="font-serif italic text-[11px]">
+                    "Beyond the Loop!"
+                  </p>
+                </div>
               </div>
 
-              {/* Bottom Badge Over Art */}
-              <div className="absolute bottom-4 left-4 right-4 p-3 rounded-2xl bg-black/75 backdrop-blur-md border border-[#e5b95a]/30 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <LexoraSymbol size={28} glow={false} />
-                  <div>
-                    <p className="font-serif font-bold text-xs text-amber-100">
-                      LEXORA Radiated Ink
+              {/* Story Details Card — Positioned Cleanly Below Artwork (Never Obstructing Poster Details) */}
+              <div
+                className={`p-3.5 border-t flex items-center justify-between transition-colors ${
+                  isDark
+                    ? 'bg-[#090b10] border-amber-500/30 text-amber-100'
+                    : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#182B32]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <LexoraSymbol size={26} glow={false} />
+                  <div className="min-w-0">
+                    <p
+                      className={`font-serif font-bold text-xs sm:text-sm truncate ${
+                        isDark ? 'text-amber-100' : 'text-[#182B32]'
+                      }`}
+                    >
+                      {heroStory?.title || 'Beyond the Loop'}
                     </p>
-                    <p className="text-[10px] text-amber-400/80 font-mono">
-                      Every Voice Has a Universe
+                    <p
+                      className={`text-[10px] font-mono truncate ${
+                        isDark ? 'text-amber-400/80' : 'text-[#64748B]'
+                      }`}
+                    >
+                      {heroStory?.authorName || 'Shreyanshu Mishra'}
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => onSelectStory('story_chronosphere_florence')}
-                  className="px-3 py-1 rounded-full bg-[#f3ba38] hover:bg-amber-300 text-slate-950 font-bold text-[11px] transition-colors cursor-pointer"
-                >
-                  Explore
-                </button>
+                {heroStory && (
+                  <button
+                    onClick={() => onSelectStory(heroStory.id)}
+                    className={`px-4 py-1.5 rounded-full font-serif font-bold text-xs transition-transform hover:scale-105 cursor-pointer shadow-md shrink-0 ${
+                      isDark
+                        ? 'bg-gradient-to-r from-[#ffd700] to-[#f3ba38] text-slate-950'
+                        : 'bg-[#26F7F7] hover:bg-[#00E5E5] text-[#182B32] shadow-[0_2px_12px_rgba(38,247,247,0.35)]'
+                    }`}
+                  >
+                    Read
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Admin Top Featured Story Control */}
+            {isFounder && (
+              <div
+                className={`mt-3 w-full max-w-sm sm:max-w-md flex items-center justify-between px-3.5 py-2 rounded-2xl border text-xs shadow-md ${
+                  isDark
+                    ? 'bg-[#0d0f15] border-amber-500/40 text-slate-200'
+                    : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#182B32]'
+                }`}
+              >
+                <span
+                  className={`text-[11px] font-serif font-bold flex items-center gap-1.5 ${
+                    isDark ? 'text-amber-300' : 'text-[#182B32]'
+                  }`}
+                >
+                  <Sparkles className={`w-3.5 h-3.5 ${isDark ? 'text-amber-400' : 'text-[#0891b2]'}`} />
+                  <span>Admin: Feature on Top</span>
+                </span>
+                <select
+                  value={heroStory?.id}
+                  onChange={(e) => setFeaturedHeroStory && setFeaturedHeroStory(e.target.value)}
+                  className={`border text-xs rounded-xl px-2.5 py-1 font-mono cursor-pointer focus:outline-hidden ${
+                    isDark
+                      ? 'bg-black text-amber-200 border-amber-500/40 focus:border-amber-400'
+                      : 'bg-white text-[#182B32] border-[#D9F5F5] focus:border-[#26F7F7]'
+                  }`}
+                  title="Feature this story on top of Home Page"
+                >
+                  {stories.map(s => (
+                    <option
+                      key={s.id}
+                      value={s.id}
+                      className={isDark ? 'bg-slate-900 text-white font-sans' : 'bg-white text-[#182B32] font-sans'}
+                    >
+                      {s.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       {/* ==================================================================== */}
-      {/* 2. CASTED CHAMPION PINNED HERO (1-Week Home Page Honour) */}
+      {/* 2. FLAGSHIP MASTERPIECE SECTION (BEYOND THE LOOP) */}
       {/* ==================================================================== */}
-      {castedChampionStory && (
-        <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-8">
-          <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-r from-amber-500/15 via-[#101217] to-amber-950/20 border-2 border-[#e5b95a]/70 shadow-2xl relative overflow-hidden group">
-            {/* Ambient Gold Ray */}
-            <div className="absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl bg-black text-[#ffd700] font-serif font-bold text-[11px] uppercase tracking-wider flex items-center gap-2 border-l border-b border-[#e5b95a]/50">
-              <CrownBadge size="xs" />
-              <span>Casted on Home Page for 1 Week · Arena 1st Place Champion</span>
+      {heroStory && (
+        <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-12">
+          <div
+            className={`p-6 sm:p-8 rounded-3xl border-2 space-y-6 transition-all ${
+              isDark
+                ? 'bg-gradient-to-r from-amber-950/40 via-[#0e1017] to-black border-amber-500/50 shadow-2xl'
+                : 'bg-white border-[#D9F5F5] shadow-[0_15px_40px_rgba(38,247,247,0.12)]'
+            }`}
+          >
+            <div
+              className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4 ${
+                isDark ? 'border-amber-500/20' : 'border-[#D9F5F5]'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <CrownBadge size="sm" />
+                <span
+                  className={`font-serif font-bold text-sm uppercase tracking-wider ${
+                    isDark ? 'text-[#ffd700]' : 'text-[#182B32]'
+                  }`}
+                >
+                  Featured Masterpiece · Beyond the Loop
+                </span>
+              </div>
+              <span
+                className={`text-[11px] font-mono px-3 py-1 rounded-full border ${
+                  isDark
+                    ? 'text-amber-300/80 bg-black/60 border-amber-400/30'
+                    : 'text-[#182B32] bg-[#F7FFFF] border-[#D9F5F5]'
+                }`}
+              >
+                5 Serialized Installments · 14.2K Readers
+              </span>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pt-4 sm:pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
               <div
-                onClick={() => onSelectStory(castedChampionStory.id)}
-                className="relative w-24 sm:w-28 aspect-[2/3] rounded-2xl overflow-hidden shadow-lg shrink-0 cursor-pointer border border-amber-400/40"
+                onClick={() => onSelectStory(heroStory.id)}
+                className={`md:col-span-4 aspect-[3/4] rounded-2xl overflow-hidden border shadow-xl cursor-pointer group transition-all ${
+                  isDark ? 'border-amber-500/40' : 'border-[#D9F5F5]'
+                }`}
               >
                 <img
-                  src={castedChampionStory.coverImage}
-                  alt={castedChampionStory.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  src={heroStory.coverImage || '/assets/aistudio/6EFD680D-3328-45B5-BDBD-1B2D6271E557_fd4e64c3.png'}
+                  alt={heroStory.title || 'Beyond the Loop'}
+                  className={`w-full h-full ${
+                    heroStory.coverFit === 'cover' ? 'object-cover' : 'object-contain'
+                  } group-hover:scale-105 transition-transform duration-500`}
                 />
               </div>
 
-              <div className="flex-1 space-y-2 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-md bg-gradient-to-r from-amber-400 to-[#f3ba38] text-slate-950 text-[10px] font-black uppercase tracking-wider">
-                    1st Position Winner
-                  </span>
-                  <span className="text-xs text-amber-300/80 font-mono">
-                    Quarterly Challenge Q1 Grand Champion
-                  </span>
+              <div className="md:col-span-8 space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs px-2.5 py-0.5 rounded-md font-semibold border ${
+                        isDark
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          : 'bg-[#F7FFFF] text-[#0891b2] border-[#D9F5F5]'
+                      }`}
+                    >
+                      {heroStory.category || 'Serialized Literature & Philosophy'}
+                    </span>
+                    <span
+                      className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}
+                    >
+                      ★ {(heroStory.ratingAverage != null ? heroStory.ratingAverage : 5.0).toFixed(1)} ({heroStory.readerCount || 0} ratings)
+                    </span>
+                  </div>
+
+                  <h2
+                    onClick={() => onSelectStory(heroStory.id)}
+                    className={`font-serif text-2xl sm:text-3xl font-bold cursor-pointer transition-colors ${
+                      isDark ? 'text-white hover:text-amber-300' : 'text-[#182B32] hover:text-[#0891b2]'
+                    }`}
+                  >
+                    "{heroStory.title || 'Beyond the Loop'}"
+                  </h2>
+
+                  <p
+                    className={`text-xs sm:text-sm leading-relaxed font-sans ${
+                      isDark ? 'text-slate-300' : 'text-[#64748B]'
+                    }`}
+                  >
+                    {heroStory.synopsis}
+                  </p>
                 </div>
 
-                <h3
-                  onClick={() => onSelectStory(castedChampionStory.id)}
-                  className="font-serif text-xl sm:text-2xl font-bold text-white hover:text-[#f3ba38] transition-colors cursor-pointer"
+                {/* Author attribution with Founder 3D Crown */}
+                <div
+                  className={`flex flex-wrap items-center justify-between gap-4 pt-2 border-t ${
+                    isDark ? 'border-white/10' : 'border-[#D9F5F5]'
+                  }`}
                 >
-                  "{castedChampionStory.title}"
-                </h3>
-
-                <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
-                  {castedChampionStory.synopsis}
-                </p>
-
-                {/* Author with floating crown directly above PFP */}
-                <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-3">
-                    <div className="relative inline-flex flex-col items-center">
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-                        <CrownBadge size="sm" />
-                      </div>
-                      <img
-                        src={castedChampionStory.authorAvatar}
-                        alt={castedChampionStory.authorName}
-                        className="w-8 h-8 rounded-full object-cover ring-2 ring-[#f3ba38]"
-                      />
-                    </div>
+                    <img
+                      src={heroStory.authorAvatar || '/assets/aistudio/IMG_6033_dd143268.jpeg'}
+                      alt={heroStory.authorName || 'Shreyanshu Mishra'}
+                      className={`w-10 h-10 rounded-full object-cover ring-2 ${
+                        isDark ? 'ring-[#ffd700]' : 'ring-[#26F7F7]'
+                      }`}
+                    />
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-slate-200">
-                          {castedChampionStory.authorName}
+                        <span
+                          className={`font-serif font-bold text-sm ${
+                            isDark ? 'text-white' : 'text-[#182B32]'
+                          }`}
+                        >
+                          {heroStory.authorName || 'Shreyanshu Mishra'}
                         </span>
-                        <VerifiedBadge size="sm" />
+                        <FounderBadge size="sm" />
                       </div>
-                      <span className="text-[10px] text-amber-400/80">
-                        1 Month Free Verification Conferred by CEO Shreyanshu Mishra
+                      <span
+                        className={`text-[11px] font-mono ${
+                          isDark ? 'text-amber-400/90' : 'text-[#64748B]'
+                        }`}
+                      >
+                        CEO &amp; Founder · Official Account
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {onOpenCertificateModal && (
-                      <button
-                        onClick={onOpenCertificateModal}
-                        className="px-3.5 py-2 rounded-full border border-amber-500/60 bg-black/60 hover:bg-amber-500/20 text-[#f3ba38] font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Award className="w-3.5 h-3.5" />
-                        <span>View Certificate (Image 3)</span>
-                      </button>
-                    )}
-                    {onOpenEliteCardModal && (
-                      <button
-                        onClick={onOpenEliteCardModal}
-                        className="px-3.5 py-2 rounded-full border border-amber-500/60 bg-black/60 hover:bg-amber-500/20 text-amber-200 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <span>VIP Elite Card (Image 2)</span>
-                      </button>
-                    )}
+                  <div className="flex items-center gap-3">
                     <button
-                      onClick={() => onReadPart(castedChampionStory.id, 1)}
-                      className="px-4 py-2 rounded-full bg-gradient-to-r from-amber-400 to-[#f3ba38] text-slate-950 font-bold text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-md"
+                      onClick={toggleLike}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs cursor-pointer transition-colors ${
+                        hasLiked
+                          ? 'bg-rose-500/20 border-rose-500 text-rose-500'
+                          : isDark
+                          ? 'bg-white/5 border-white/10 text-slate-300'
+                          : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#182B32]'
+                      }`}
                     >
-                      <BookOpen className="w-3.5 h-3.5 text-slate-950" />
-                      <span>Read Champion Story</span>
+                      <Heart className={`w-3.5 h-3.5 ${hasLiked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                      <span>{likesCount.toLocaleString()}</span>
                     </button>
+
+                    <button
+                      onClick={toggleBookmark}
+                      className={`p-2 rounded-xl border text-xs cursor-pointer transition-colors ${
+                        bookmarked
+                          ? isDark
+                            ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                            : 'bg-[#CFFFFF] border-[#26F7F7] text-[#0891b2]'
+                          : isDark
+                          ? 'bg-white/5 border-white/10 text-slate-300'
+                          : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#182B32]'
+                      }`}
+                    >
+                      <Bookmark
+                        className={`w-3.5 h-3.5 ${
+                          bookmarked
+                            ? isDark
+                              ? 'fill-current text-[#ffd700]'
+                              : 'fill-current text-[#0891b2]'
+                            : ''
+                        }`}
+                      />
+                    </button>
+
+                    <button
+                      onClick={() => handleReadClick(heroStory.id, 1)}
+                      className={`px-5 py-2.5 rounded-full font-serif font-bold text-xs flex items-center gap-2 hover:scale-105 transition-all shadow-md cursor-pointer ${
+                        isDark
+                          ? 'bg-gradient-to-r from-[#ffd700] via-[#f3ba38] to-[#d4af37] text-black'
+                          : 'bg-[#26F7F7] hover:bg-[#00E5E5] text-[#182B32] shadow-[0_4px_16px_rgba(38,247,247,0.35)]'
+                      }`}
+                    >
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>Begin Reading</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Chapter Previews */}
+                <div className="pt-2">
+                  <span
+                    className={`text-[11px] font-mono uppercase block mb-2 font-semibold ${
+                      isDark ? 'text-amber-400/80' : 'text-[#0891b2]'
+                    }`}
+                  >
+                    Serialized Chapters:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {heroParts.slice(0, 4).map(p => (
+                      <div
+                        key={p.id}
+                        onClick={() => handleReadClick(heroStory.id, p.partNumber)}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer group transition-all ${
+                          isDark
+                            ? 'bg-black/60 hover:bg-white/5 border-white/10 text-white'
+                            : 'bg-[#F7FFFF] hover:bg-[#E9FFFF] border-[#D9F5F5] text-[#182B32]'
+                        }`}
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p
+                            className={`font-serif text-xs font-semibold truncate ${
+                              isDark ? 'text-white group-hover:text-amber-300' : 'text-[#182B32] group-hover:text-[#0891b2]'
+                            }`}
+                          >
+                            {p.title}
+                          </p>
+                          <p
+                            className={`text-[10px] font-mono ${
+                              isDark ? 'text-slate-400' : 'text-[#64748B]'
+                            }`}
+                          >
+                            Part {p.partNumber} · Free
+                          </p>
+                        </div>
+                        <ArrowRight
+                          className={`w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform shrink-0 ${
+                            isDark ? 'text-amber-400' : 'text-[#0891b2]'
+                          }`}
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -326,338 +684,184 @@ export const HomePage: React.FC<HomePageProps> = ({
       )}
 
       {/* ==================================================================== */}
-      {/* 3. EXPLORE OUR LITERARY WORLDS: 6 CARDS (IMAGE 4) */}
+      {/* 3. ATTACHMENT 1: ELITE ACTIVATION SECTION AT BOTTOM */}
       {/* ==================================================================== */}
-      <section id="literary-worlds-section" className="max-w-6xl mx-auto px-5 sm:px-8 pt-14 space-y-6">
-        <div className="flex items-end justify-between border-b border-amber-500/20 pb-4">
-          <div className="space-y-1">
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Explore Our Literary Worlds
-            </h2>
-            <p className="text-slate-400 text-xs sm:text-sm">
-              Find your kind of story. Dive into what inspires you.
-            </p>
-          </div>
+      <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-16">
+        <div
+          className={`relative rounded-3xl border-2 overflow-hidden transition-all ${
+            isDark
+              ? 'bg-gradient-to-br from-[#121008] via-[#090a0f] to-black border-amber-500/60 shadow-[0_20px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(243,186,56,0.25)]'
+              : 'bg-white border-[#D9F5F5] shadow-[0_20px_50px_rgba(38,247,247,0.12)]'
+          }`}
+        >
+          {/* Subtle Ambient Glow */}
+          <div
+            className={`absolute top-0 right-0 w-80 h-80 rounded-full blur-3xl pointer-events-none ${
+              isDark ? 'bg-amber-500/10' : 'bg-[#26F7F7]/15'
+            }`}
+          />
 
-          <button
-            onClick={() => handleCategoryClick('Poetry')}
-            className="text-xs font-semibold text-[#f3ba38] hover:text-amber-200 flex items-center gap-1 cursor-pointer transition-colors"
-          >
-            <span>View All</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 6 Category Cards Grid from Image 4 */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
-          {[
-            {
-              id: 'cat_poetry',
-              name: 'Poetry',
-              tagline: 'Feel. Express. Be real.',
-              icon: '🪶',
-              img: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=400&q=80',
-            },
-            {
-              id: 'cat_stories',
-              name: 'Stories',
-              tagline: 'Fiction. Fantasy. Thrillers.',
-              icon: '📖',
-              img: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=400&q=80',
-            },
-            {
-              id: 'cat_essays',
-              name: 'Essays',
-              tagline: 'Ideas. Opinions. Change.',
-              icon: '💡',
-              img: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=400&q=80',
-            },
-            {
-              id: 'cat_journal',
-              name: 'Journal',
-              tagline: 'Your thoughts. Your space.',
-              icon: '📓',
-              img: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80',
-            },
-            {
-              id: 'cat_challenges',
-              name: 'Challenges',
-              tagline: 'Write. Compete. Shine.',
-              icon: '🏆',
-              img: 'https://images.unsplash.com/photo-1533227268428-f9ed0900fb3b?auto=format&fit=crop&w=400&q=80',
-            },
-            {
-              id: 'cat_discovery',
-              name: 'Discovery',
-              tagline: 'New voices. Hidden gems.',
-              icon: '🧭',
-              img: 'https://images.unsplash.com/photo-1507842229450-7907e5c5c637?auto=format&fit=crop&w=400&q=80',
-            },
-          ].map((cat) => (
-            <div
-              key={cat.id}
-              onClick={() => handleCategoryClick(cat.name)}
-              className="group relative rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-gradient-to-b from-[#111319] to-[#07080c] border border-amber-500/25 hover:border-amber-400 transition-all duration-300 flex flex-col justify-between aspect-[3/4] overflow-hidden shadow-lg cursor-pointer transform hover:-translate-y-1"
-            >
-              {/* Background Ambient Art */}
-              <img
-                src={cat.img}
-                alt={cat.name}
-                className="absolute inset-0 w-full h-full object-cover opacity-25 group-hover:opacity-40 transition-opacity duration-300 pointer-events-none"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#06070a] via-[#06070a]/70 to-transparent pointer-events-none" />
-
-              {/* Top: Icon */}
-              <div className="relative z-10 text-2xl sm:text-3xl">
-                {cat.icon}
-              </div>
-
-              {/* Bottom: Title, Tagline & Circular Arrow */}
-              <div className="relative z-10 space-y-1.5 pt-4">
-                <h3 className="font-serif text-base sm:text-lg font-bold text-white group-hover:text-[#f3ba38] transition-colors">
-                  {cat.name}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-slate-400 font-sans leading-tight">
-                  {cat.tagline}
-                </p>
-                <div className="pt-2 flex justify-end">
-                  <div className="w-7 h-7 rounded-full bg-black/60 border border-amber-500/40 group-hover:border-amber-300 group-hover:bg-[#f3ba38] text-amber-300 group-hover:text-slate-950 flex items-center justify-center transition-all">
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ==================================================================== */}
-      {/* 4. TWO-COLUMN SHOWCASE: FEATURED MASTERPIECE & TOP RATED (IMAGE 4) */}
-      {/* ==================================================================== */}
-      <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-14">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column (60%): 👑 FEATURED MASTERPIECE */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex items-center gap-2">
-              <span className="text-[#ffd700] text-sm">👑</span>
-              <h2 className="font-serif text-xs sm:text-sm font-bold uppercase tracking-[0.2em] text-[#ffd700]">
-                Featured Masterpiece
-              </h2>
-            </div>
-
-            {/* Masterpiece Card from Image 4: The Unspoken Sky */}
-            <div
-              onClick={() => onSelectStory('story_unspoken_sky')}
-              className="p-5 sm:p-6 rounded-3xl bg-gradient-to-b from-[#111319] via-[#0a0b0f] to-[#050608] border border-amber-500/35 hover:border-amber-400/70 transition-all duration-300 shadow-xl group cursor-pointer"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-center">
-                {/* Artwork (Anime skyline window boy) */}
-                <div className="sm:col-span-5 rounded-2xl overflow-hidden aspect-[4/3] sm:aspect-square border border-amber-500/25 relative">
-                  <img
-                    src="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=80"
-                    alt="The Unspoken Sky"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                </div>
-
-                {/* Details */}
-                <div className="sm:col-span-7 space-y-3 text-left">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-[#f3ba38] border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider">
-                      Poem
-                    </span>
-                  </div>
-
-                  <h3 className="font-serif text-2xl sm:text-3xl font-bold text-white group-hover:text-[#f3ba38] transition-colors">
-                    The Unspoken Sky
-                  </h3>
-
-                  <p className="font-serif italic text-xs sm:text-sm text-amber-100/90 leading-relaxed">
-                    "Some feelings don’t need words, they just need a sky to be heard."
-                  </p>
-
-                  {/* Author Line */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <img
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80"
-                      alt="Aayushi Verma"
-                      className="w-6 h-6 rounded-full object-cover ring-1 ring-amber-400/60"
-                    />
-                    <span className="text-xs font-semibold text-slate-300">
-                      By Aayushi Verma
-                    </span>
-                    <VerifiedBadge size="xs" />
-                  </div>
-
-                  {/* Interactive Stats matching Image 4 */}
-                  <div className="pt-2 flex items-center justify-between text-xs text-slate-400 border-t border-amber-500/15">
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={(e) => toggleLike('story_unspoken_sky', e)}
-                        className="flex items-center gap-1.5 hover:text-red-400 transition-colors"
-                      >
-                        <Heart className="w-3.5 h-3.5 fill-red-500 text-red-500" />
-                        <span>{likedStories.story_unspoken_sky || 2400}</span>
-                      </button>
-
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>312</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={(e) => toggleBookmark('story_unspoken_sky', e)}
-                      className="p-1 rounded-lg hover:text-amber-300 transition-colors"
-                    >
-                      <Bookmark
-                        className={`w-4 h-4 ${
-                          bookmarkedStories.story_unspoken_sky
-                            ? 'fill-[#f3ba38] text-[#f3ba38]'
-                            : 'text-slate-400'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column (40%): ⭐ Top Rated */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-[#ffd700] fill-[#ffd700]" />
-                <h2 className="font-serif text-xs sm:text-sm font-bold uppercase tracking-[0.2em] text-[#ffd700]">
-                  Top Rated
-                </h2>
-              </div>
-              <button
-                onClick={() => onSelectStory('story_the_last_letter')}
-                className="text-xs font-semibold text-[#f3ba38] hover:text-amber-200 flex items-center gap-1 cursor-pointer transition-colors"
+          <div className="p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left 5 Cols: Visual Elite Card Mockup - High Definition & Clearly Visible */}
+            <div className="lg:col-span-5 relative flex justify-center">
+              <div
+                className={`relative w-full max-w-md rounded-3xl overflow-hidden border-2 group transition-all ${
+                  isDark
+                    ? 'border-amber-400/80 shadow-[0_20px_50px_rgba(0,0,0,0.95),0_0_35px_rgba(243,186,56,0.35)] bg-black'
+                    : 'border-[#D9F5F5] shadow-[0_20px_40px_rgba(38,247,247,0.15)] bg-[#F7FFFF]'
+                }`}
               >
-                <span>Read More</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* 3 Top Rated Stories from Image 4 */}
-            <div className="space-y-3">
-              {[
-                {
-                  id: 'story_the_last_letter',
-                  title: 'The Last Letter',
-                  category: 'Short Story',
-                  author: 'Raghav Sharma',
-                  rating: 4.9,
-                  likes: '12.5K',
-                  img: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=400&q=80',
-                },
-                {
-                  id: 'story_beyond_the_noise',
-                  title: 'Beyond the Noise',
-                  category: 'Essay',
-                  author: 'Meera Iyer',
-                  rating: 4.8,
-                  likes: '8.3K',
-                  img: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80',
-                },
-                {
-                  id: 'story_monsoon_again',
-                  title: 'Monsoon Again',
-                  category: 'Poem',
-                  author: 'Arjun Singh',
-                  rating: 4.7,
-                  likes: '6.2K',
-                  img: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=400&q=80',
-                },
-              ].map((item) => (
+                <img
+                  src="/assets/aistudio/B30148B8-E423-4669-A33E-156E8E761156_4ad88869.png"
+                  alt="Digital Lexora Elite Card - Clearly Visible"
+                  className="w-full h-auto object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                />
                 <div
-                  key={item.id}
-                  onClick={() => onSelectStory(item.id)}
-                  className="p-3 sm:p-3.5 rounded-2xl bg-[#0c0d12] hover:bg-[#12141c] border border-amber-500/20 hover:border-amber-400/50 transition-all flex items-center gap-3.5 cursor-pointer group shadow-sm"
+                  className={`absolute inset-0 ring-1 ring-inset rounded-3xl pointer-events-none ${
+                    isDark ? 'ring-amber-400/40' : 'ring-[#26F7F7]/30'
+                  }`}
+                />
+
+                {/* Active Clarity Badge */}
+                <div
+                  className={`absolute bottom-3 left-3 right-3 py-1.5 px-3 rounded-xl backdrop-blur-md border flex items-center justify-between text-[10px] font-mono ${
+                    isDark
+                      ? 'bg-black/80 border-amber-400/40'
+                      : 'bg-white/95 border-[#D9F5F5]'
+                  }`}
                 >
-                  <img
-                    src={item.img}
-                    alt={item.title}
-                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0 border border-amber-500/20"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-serif font-bold text-sm sm:text-base text-white group-hover:text-[#f3ba38] truncate transition-colors">
-                      {item.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-400 truncate">
-                      {item.category} • By {item.author}
-                    </p>
-                    <div className="flex items-center gap-3 pt-1 text-[11px] text-amber-300">
-                      <span className="flex items-center gap-1 font-bold">
-                        <Star className="w-3 h-3 fill-[#ffd700] text-[#ffd700]" />
-                        {item.rating}
-                      </span>
-                      <span className="flex items-center gap-1 text-slate-400">
-                        <Heart className="w-3 h-3 text-red-400" />
-                        {item.likes}
-                      </span>
-                    </div>
-                  </div>
+                  <span
+                    className={`font-bold ${isDark ? 'text-amber-300' : 'text-[#182B32]'}`}
+                  >
+                    LEXORA ELITE · ACTIVATION CARD
+                  </span>
+                  <span className="text-emerald-500 font-bold">40% OFF PASS</span>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ==================================================================== */}
-      {/* 5. MORE THAN JUST A PLATFORM (IMAGE 4) */}
-      {/* ==================================================================== */}
-      <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-16">
-        <div className="relative rounded-3xl p-6 sm:p-10 bg-gradient-to-r from-[#12131a] via-[#090a0d] to-[#050608] border border-[#e5b95a]/40 shadow-2xl overflow-hidden">
-          {/* Subtle Ambient Books & Mug Overlay on the right */}
-          <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-20 sm:opacity-30 pointer-events-none">
-            <img
-              src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80"
-              alt="Good Stories Better People"
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          <div className="relative z-10 max-w-xl space-y-4 text-left">
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              More Than Just a Platform
-            </h2>
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Join a community of passionate writers and curious readers. Follow your favourite authors, get inspired, and build your own literary journey.
-            </p>
-
-            <div className="pt-2 flex flex-wrap items-center gap-4">
-              <button
-                onClick={onOpenCreateStory}
-                className="px-6 py-3 rounded-full bg-gradient-to-r from-amber-400 to-[#f3ba38] hover:opacity-90 text-slate-950 font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center gap-2"
-              >
-                <span>Join the Community</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-
-              {/* Avatar Cluster from Image 4 */}
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <div className="flex -space-x-2">
-                  {[
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
-                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
-                    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
-                    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
-                  ].map((src, i) => (
-                    <img
-                      key={i}
-                      src={src}
-                      alt="Community Member"
-                      className="w-7 h-7 rounded-full object-cover ring-2 ring-black"
-                    />
-                  ))}
+            {/* Right 7 Cols: Elite Activation Features & Plans */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              <div className="space-y-2">
+                <div
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold ${
+                    isDark
+                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                      : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#0891b2]'
+                  }`}
+                >
+                  <Crown className={`w-3.5 h-3.5 ${isDark ? 'text-[#ffd700]' : 'text-[#0891b2]'}`} />
+                  <span>LEXORA Elite Activation · Beyond the Loop</span>
                 </div>
-                <span>Join 50K+ readers &amp; writers</span>
+
+                <h2
+                  className={`font-serif text-3xl sm:text-4xl font-bold tracking-tight ${
+                    isDark ? 'text-white' : 'text-[#182B32]'
+                  }`}
+                >
+                  Unlock the Digital Lexora Elite Card
+                </h2>
+
+                <p
+                  className={`text-xs sm:text-sm leading-relaxed font-sans ${
+                    isDark ? 'text-slate-300' : 'text-[#64748B]'
+                  }`}
+                >
+                  Join the highest tier of literary patronage. Your name is permanently engraved on your digital card, accompanied by exclusive verified credentials, Golden Library unlocks, and platform privileges.
+                </p>
+              </div>
+
+              {/* 3 Core Best Features */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div
+                  className={`p-3.5 rounded-2xl border space-y-1 ${
+                    isDark ? 'bg-black/60 border-amber-500/30' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+                  }`}
+                >
+                  <div
+                    className={`flex items-center gap-1.5 font-serif font-bold ${
+                      isDark ? 'text-amber-300' : 'text-[#182B32]'
+                    }`}
+                  >
+                    <Award className={`w-4 h-4 ${isDark ? 'text-[#ffd700]' : 'text-[#0891b2]'}`} />
+                    <span>Literary Passport</span>
+                  </div>
+                  <p
+                    className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}
+                  >
+                    Category completion stamps &amp; official certificates.
+                  </p>
+                </div>
+
+                <div
+                  className={`p-3.5 rounded-2xl border space-y-1 ${
+                    isDark ? 'bg-black/60 border-amber-500/30' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+                  }`}
+                >
+                  <div
+                    className={`flex items-center gap-1.5 font-serif font-bold ${
+                      isDark ? 'text-amber-300' : 'text-[#182B32]'
+                    }`}
+                  >
+                    <Sparkles className={`w-4 h-4 ${isDark ? 'text-[#ffd700]' : 'text-[#0891b2]'}`} />
+                    <span>Golden Library</span>
+                  </div>
+                  <p
+                    className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}
+                  >
+                    Priority showcase and unlimited reading across all premium works.
+                  </p>
+                </div>
+
+                <div
+                  className={`p-3.5 rounded-2xl border space-y-1 ${
+                    isDark ? 'bg-black/60 border-amber-500/30' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+                  }`}
+                >
+                  <div
+                    className={`flex items-center gap-1.5 font-serif font-bold ${
+                      isDark ? 'text-amber-300' : 'text-[#182B32]'
+                    }`}
+                  >
+                    <ShieldCheck className={`w-4 h-4 ${isDark ? 'text-[#ffd700]' : 'text-[#0891b2]'}`} />
+                    <span>Verification Badge</span>
+                  </div>
+                  <p
+                    className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}
+                  >
+                    Black and golden combo tick verifying your author status.
+                  </p>
+                </div>
+              </div>
+
+              {/* Activation Plans & CTAs */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                <button
+                  onClick={() => {
+                    if (onOpenUpgradeModal) onOpenUpgradeModal();
+                  }}
+                  className={`w-full sm:w-auto px-8 py-3.5 rounded-full font-serif font-bold text-xs sm:text-sm hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    isDark
+                      ? 'bg-gradient-to-r from-[#ffd700] via-[#f3ba38] to-[#d4af37] text-black shadow-[0_0_20px_rgba(243,186,56,0.5)]'
+                      : 'bg-[#26F7F7] hover:bg-[#00E5E5] text-[#182B32] shadow-[0_4px_20px_rgba(38,247,247,0.4)]'
+                  }`}
+                >
+                  <Crown className="w-4 h-4 stroke-[2.5]" />
+                  <span>Activate Elite Membership (₹299/mo)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (onOpenUpgradeModal) onOpenUpgradeModal();
+                  }}
+                  className={`w-full sm:w-auto px-6 py-3.5 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 border ${
+                    isDark
+                      ? 'bg-black/80 hover:bg-white/5 border-amber-500/40 text-amber-200'
+                      : 'bg-white hover:bg-[#E9FFFF] border-[#D9F5F5] text-[#182B32]'
+                  }`}
+                >
+                  <span>Yearly Pass (₹2,149 · Save 40%)</span>
+                </button>
               </div>
             </div>
           </div>
@@ -665,100 +869,118 @@ export const HomePage: React.FC<HomePageProps> = ({
       </section>
 
       {/* ==================================================================== */}
-      {/* 6. 5-PILLAR FEATURES STRIP (EXACT MATCH OF IMAGE 4) */}
+      {/* 3.5 AUTHENTIC FEATURED STORIES DISCOVERY (Conditionally Renders ONLY when authentic published featured stories exist) */}
       {/* ==================================================================== */}
-      <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-16">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 sm:gap-8 pt-8 border-t border-amber-500/20 text-center">
-          {/* Pillar 1 */}
-          <div className="space-y-2">
-            <div className="w-10 h-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[#f3ba38]">
-              <Edit3 className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-bold text-sm text-white">Write Freely</h3>
-            <p className="text-[11px] text-slate-400 leading-snug">
-              Powerful editor with distraction-free mode.
-            </p>
-          </div>
-
-          {/* Pillar 2 */}
-          <div className="space-y-2">
-            <div className="w-10 h-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[#f3ba38]">
-              <Users className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-bold text-sm text-white">Get Noticed</h3>
-            <p className="text-[11px] text-slate-400 leading-snug">
-              Showcase your work and grow your audience.
-            </p>
-          </div>
-
-          {/* Pillar 3 */}
-          <div className="space-y-2">
-            <div className="w-10 h-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[#f3ba38]">
-              <Trophy className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-bold text-sm text-white">Earn Recognition</h3>
-            <p className="text-[11px] text-slate-400 leading-snug">
-              Writer ranks, badges and achievements.
-            </p>
-          </div>
-
-          {/* Pillar 4 */}
-          <div className="space-y-2">
-            <div className="w-10 h-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[#f3ba38]">
-              <Gift className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-bold text-sm text-white">Join Challenges</h3>
-            <p className="text-[11px] text-slate-400 leading-snug">
-              Weekly prompts, contests and more.
-            </p>
-          </div>
-
-          {/* Pillar 5 */}
-          <div className="space-y-2 col-span-2 md:col-span-1">
-            <div className="w-10 h-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[#f3ba38]">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <h3 className="font-serif font-bold text-sm text-white">Be Your Best</h3>
-            <p className="text-[11px] text-slate-400 leading-snug">
-              AI tools to help you write, improve and grow.
-            </p>
-          </div>
-        </div>
-      </section>
+      <AuthenticFeaturedDiscovery
+        stories={stories}
+        onSelectStory={onSelectStory}
+        isDark={isDark}
+      />
 
       {/* ==================================================================== */}
-      {/* 7. FOOTER (EXACT REPLICA OF IMAGE 4) */}
+      {/* 4. FOOTER (BEYOND THE LOOP!) */}
       {/* ==================================================================== */}
-      <footer className="max-w-6xl mx-auto px-5 sm:px-8 pt-16 pb-12 mt-16 border-t border-amber-500/20 text-xs text-slate-400">
+      <footer
+        className={`max-w-6xl mx-auto px-5 sm:px-8 pt-16 pb-12 mt-16 border-t text-xs ${
+          isDark ? 'border-amber-500/20 text-slate-400' : 'border-[#D9F5F5] text-[#64748B]'
+        }`}
+      >
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           {/* Logo & Brand Name */}
           <div className="flex items-center gap-3">
             <LexoraSymbol size={32} glow={false} />
             <div>
-              <span className="font-serif font-bold text-lg text-white tracking-widest block">
+              <span
+                className={`font-serif font-bold text-lg tracking-widest block ${
+                  isDark ? 'text-white' : 'text-[#182B32]'
+                }`}
+              >
                 LEXORA
               </span>
-              <span className="text-[9px] uppercase tracking-widest text-[#e5b95a] font-sans -mt-0.5 block">
-                Radiated Ink
+              <span
+                className={`text-[9px] uppercase tracking-widest font-sans -mt-0.5 block ${
+                  isDark ? 'text-[#e5b95a]' : 'text-[#0891b2]'
+                }`}
+              >
+                Beyond the Loop!
               </span>
             </div>
           </div>
 
-          {/* Middle Links */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-300">
-            <span className="hover:text-amber-300 cursor-pointer transition-colors">About</span>
-            <span className="hover:text-amber-300 cursor-pointer transition-colors">Privacy</span>
-            <span className="hover:text-amber-300 cursor-pointer transition-colors">Terms</span>
-            <span className="hover:text-amber-300 cursor-pointer transition-colors">Contact</span>
-            <span className="hover:text-amber-300 cursor-pointer transition-colors">Help</span>
+          {/* Middle Links including Official Channels */}
+          <div
+            className={`flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs ${
+              isDark ? 'text-slate-300' : 'text-[#182B32]'
+            }`}
+          >
+            <a
+              href="https://whatsapp.com/channel/0029Vb8s4JuDuMRn4H7z0n3t"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-emerald-500 cursor-pointer transition-colors flex items-center gap-1"
+            >
+              <span>WhatsApp Channel</span>
+            </a>
+            <a
+              href="https://www.instagram.com/lexora.____?srtk=ZHkxMW1nd2NtN21h&utm_source=qr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-pink-500 cursor-pointer transition-colors flex items-center gap-1"
+            >
+              <span>Instagram @lexora.____</span>
+            </a>
+            {onOpenLegal && (
+              <button
+                onClick={onOpenLegal}
+                className={`cursor-pointer transition-colors ${
+                  isDark ? 'hover:text-amber-300' : 'hover:text-[#0891b2]'
+                }`}
+              >
+                Terms &amp; Privacy Policy
+              </button>
+            )}
+            {onOpenHelpCenter && (
+              <button
+                onClick={onOpenHelpCenter}
+                className={`cursor-pointer transition-colors ${
+                  isDark ? 'hover:text-amber-300' : 'hover:text-[#0891b2]'
+                }`}
+              >
+                Help Center
+              </button>
+            )}
           </div>
 
-          {/* Socials & CEO Attribution from Image 4 */}
-          <div className="flex items-center gap-4 text-slate-400">
-            <span className="font-serif text-xs text-amber-200/90 font-medium">
-              CEO - Shreyanshu Mishra
+          {/* Socials & CEO Attribution */}
+          <div className="flex items-center gap-4">
+            <span
+              className={`font-serif text-xs font-medium ${
+                isDark ? 'text-amber-200/90' : 'text-[#64748B]'
+              }`}
+            >
+              CEO &amp; Founder — Shreyanshu Mishra
             </span>
           </div>
+        </div>
+
+        {/* Mandatory Official Copyright Notice */}
+        <div
+          className={`mt-8 pt-6 border-t text-center space-y-1 ${
+            isDark ? 'border-amber-500/15' : 'border-[#D9F5F5]'
+          }`}
+        >
+          <p
+            className={`font-serif text-xs font-bold tracking-wider ${
+              isDark ? 'text-amber-300/90' : 'text-[#182B32]'
+            }`}
+          >
+            LEXORA - Written by Its Community. Copyright Achieved 2026
+          </p>
+          <p
+            className={`text-[10px] font-sans ${isDark ? 'text-slate-500' : 'text-[#64748B]'}`}
+          >
+            All rights reserved across 15 global languages. Universal literary sanctuary.
+          </p>
         </div>
       </footer>
     </div>

@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useStories } from '../../context/StoryContext';
 import { isStoryPremium } from '../../utils/premiumRules';
 import { LISTING_CATEGORIES } from '../../types';
-import { Search, Filter, Star, BookOpen, Sparkles, CheckCircle } from 'lucide-react';
+import { Search, Filter, Star, BookOpen, Sparkles, CheckCircle, ArrowLeft } from 'lucide-react';
 
 interface DiscoverPageProps {
+  onBack?: () => void;
   onSelectStory: (storyId: string) => void;
   onOpenWriterProfile?: (authorId: string) => void;
 }
 
 export const DiscoverPage: React.FC<DiscoverPageProps> = ({
+  onBack,
   onSelectStory,
   onOpenWriterProfile,
 }) => {
@@ -75,6 +77,15 @@ export const DiscoverPage: React.FC<DiscoverPageProps> = ({
       {/* Header & Search Bar */}
       <div className="bg-white border-b border-slate-200 py-6 px-4">
         <div className="max-w-5xl mx-auto space-y-4">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer transition-all"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+          )}
           <div className="space-y-1">
             <h1 className="text-2xl md:text-3xl font-extrabold font-sans-modern tracking-tight">
               Discover Serialized Literature

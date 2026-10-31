@@ -67,111 +67,16 @@ export const VerifiedBadge: React.FC<BadgeProps> = ({ size = 'sm', className = '
 };
 
 /**
- * 3D Crown Shaped Founder Badge:
- * User requirement: "replace the founder badge with a crown shaped 3D badge"
- * Radiant 3D crown sculpted with metallic gold bevels and diamond facets.
+/**
+ * FounderBadge:
+ * User requirement: "remove the founder badge but keep the verified black and golden badge"
+ * Seamlessly renders the sleek VerifiedBadge (obsidian black inside with radiant golden tick).
  */
 export const FounderBadge: React.FC<BadgeProps> = ({
   size = 'sm',
-  showLabel = true,
   className = '',
 }) => {
-  const sizeMap = {
-    xs: 'w-4 h-4',
-    sm: 'w-5 h-5',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8',
-  };
-
-  const dim = sizeMap[size] || sizeMap.sm;
-
-  return (
-    <div
-      className={`inline-flex items-center gap-1.5 select-none ${className}`}
-      title="Founder & CEO of LEXORA (Shreyanshu Mishra)"
-    >
-      {/* 3D Crown Icon */}
-      <span className="relative inline-flex items-center justify-center shrink-0">
-        <svg
-          viewBox="0 0 28 28"
-          className={`${dim} filter drop-shadow-[0_2px_10px_rgba(243,186,56,0.7)] transition-transform hover:scale-115`}
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="crown3DGoldBase" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#fff8db" />
-              <stop offset="25%" stopColor="#ffd700" />
-              <stop offset="60%" stopColor="#e5b95a" />
-              <stop offset="85%" stopColor="#b8860b" />
-              <stop offset="100%" stopColor="#7c5806" />
-            </linearGradient>
-            <linearGradient id="crown3DHighlight" x1="0%" y1="50%" x2="100%" y2="50%">
-              <stop offset="0%" stopColor="#ffd700" />
-              <stop offset="50%" stopColor="#ffffff" />
-              <stop offset="100%" stopColor="#d4af37" />
-            </linearGradient>
-            <radialGradient id="rubyGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#ff4d4d" />
-              <stop offset="100%" stopColor="#990000" />
-            </radialGradient>
-          </defs>
-
-          {/* Crown Circlet / Base Ring with 3D Bevel */}
-          <rect
-            x="3.5"
-            y="20.5"
-            width="21"
-            height="3.5"
-            rx="1.5"
-            fill="url(#crown3DGoldBase)"
-            stroke="#634502"
-            strokeWidth="0.6"
-          />
-          {/* Base Inset Jewels */}
-          <circle cx="8" cy="22.2" r="1" fill="url(#rubyGlow)" />
-          <circle cx="14" cy="22.2" r="1.1" fill="#ffffff" />
-          <circle cx="20" cy="22.2" r="1" fill="url(#rubyGlow)" />
-
-          {/* 3D Crown Body Spikes */}
-          <path
-            d="M 3.8 20.5 L 2.5 9.5 L 8.5 14.5 L 14 4 L 19.5 14.5 L 25.5 9.5 L 24.2 20.5 Z"
-            fill="url(#crown3DGoldBase)"
-            stroke="#634502"
-            strokeWidth="0.8"
-          />
-
-          {/* Central 3D Facet Shading */}
-          <path
-            d="M 14 4 L 8.5 14.5 L 14 18.5 L 19.5 14.5 Z"
-            fill="url(#crown3DHighlight)"
-            opacity="0.85"
-          />
-
-          {/* Crown Jewels on Spikes */}
-          <circle cx="14" cy="4" r="1.8" fill="#ffffff" stroke="#d4af37" strokeWidth="0.6" />
-          <circle cx="2.5" cy="9.5" r="1.4" fill="#ffffff" stroke="#d4af37" strokeWidth="0.5" />
-          <circle cx="25.5" cy="9.5" r="1.4" fill="#ffffff" stroke="#d4af37" strokeWidth="0.5" />
-        </svg>
-      </span>
-
-      {showLabel && (
-        <span
-          className={`inline-flex items-center font-serif font-bold tracking-wider rounded-full bg-black/90 text-[#f3ba38] border border-[#e5b95a]/70 shadow-sm ${
-            size === 'xs'
-              ? 'px-1.5 py-0.2 text-[9px]'
-              : size === 'sm'
-              ? 'px-2 py-0.5 text-[10px]'
-              : size === 'md'
-              ? 'px-2.5 py-0.5 text-xs'
-              : 'px-3 py-1 text-sm'
-          }`}
-        >
-          Founder
-        </span>
-      )}
-    </div>
-  );
+  return <VerifiedBadge size={size} className={className} />;
 };
 
 /**

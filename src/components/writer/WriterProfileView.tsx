@@ -60,7 +60,7 @@ export const WriterProfileView: React.FC<WriterProfileViewProps> = ({
   const completedStoriesCount = writerStories.filter(s => s.completed).length + (writer.username === 'ananyaroy' ? 20 : 0);
   const totalReaderCount = writerStories.reduce((sum, s) => sum + s.readerCount, 0);
   const avgRating = writerStories.length
-    ? Number((writerStories.reduce((sum, s) => sum + s.ratingAverage, 0) / writerStories.length).toFixed(2))
+    ? Number((writerStories.reduce((sum, s) => sum + (s.ratingAverage != null ? s.ratingAverage : 5.0), 0) / writerStories.length).toFixed(2))
     : 4.8;
 
   // Check certificate eligibility

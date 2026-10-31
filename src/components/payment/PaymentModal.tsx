@@ -1,8 +1,25 @@
-import React, { useState } from 'react';
-import { Story } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Story, ElitePlanType } from '../../types';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../context/AuthContext';
-import { X, CheckCircle, ShieldCheck, QrCode, Copy, ArrowRight, Sparkles, Lock, CreditCard } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { LexoraEliteCard } from '../card/LexoraEliteCard';
+import { LexoraSymbol } from '../common/LexoraSymbol';
+import {
+  X,
+  CheckCircle,
+  ShieldCheck,
+  Copy,
+  ArrowRight,
+  Sparkles,
+  Lock,
+  CreditCard,
+  Crown,
+  Check,
+  Smartphone,
+  AlertTriangle,
+  Info,
+} from 'lucide-react';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -20,23 +37,46 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onSuccess,
 }) => {
   const { settings, submitPayment } = useStories();
-  const { currentUser } = useAuth();
+  const { currentUser, togglePremiumSubscription } = useAuth();
+  const { isDark } = useTheme();
 
+  // Selected Elite Plan: Monthly (₹299) vs Yearly (₹2,149)
+  const [selectedPlan, setSelectedPlan] = useState<ElitePlanType>('monthly_299');
   const [transactionRef, setTransactionRef] = useState('');
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Google Play Consumption-Only State
+  const [isGooglePlay, setIsGooglePlay] = useState(false);
+
+  useEffect(() => {
+    // Check client platform config from server
+    fetch('/api/config/client')
+      .then(res => res.json())
+      .then(data => {
+        if (data.isGooglePlay) {
+          setIsGooglePlay(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   if (!isOpen) return null;
 
-  const amount = productType === 'monthly_subscription' 
-    ? (settings.monthlySubscriptionPrice || 299)
+  const isElite = productType === 'monthly_subscription';
+  const amount = isElite
+    ? selectedPlan === 'yearly_2149'
+      ? 2149
+      : (settings.monthlySubscriptionPrice || 299)
     : (settings.storyUnlockPrice || 19);
 
   const destinationUpi = settings.paymentDestinationUpi || '7852931077@fam';
-  const upiLink = `upi://pay?pa=${destinationUpi}&pn=LEXORA%20Platform&am=${amount}&cu=INR&tn=${encodeURIComponent(
-    productType === 'monthly_subscription' ? 'LEXORA Premium Monthly' : `LEXORA Story: ${story?.title || 'Unlock'}`
+  const upiLink = `upi://pay?pa=${destinationUpi}&pn=LEXORA%20Beyond%20The%20Loop&am=${amount}&cu=INR&tn=${encodeURIComponent(
+    isElite
+      ? `LEXORA Elite Pass (${selectedPlan === 'yearly_2149' ? 'Yearly ₹2149' : 'Monthly ₹299'})`
+      : `LEXORA Story Unlock: ${story?.title || 'Story'}`
   )}`;
 
   const copyUpiId = () => {
@@ -53,7 +93,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transactionRef.trim()) {
-      setError('Please enter the 12-digit UPI transaction reference or UTR number.');
+      setError('Please enter the 12-digit UPI transaction reference / UTR number.');
       return;
     }
 
@@ -61,6 +101,25 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setError(null);
 
     try {
+      // 1. Submit through backend verification system
+      const res = await fetch('/api/elite/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser?.id || 'usr_guest',
+          userName: currentUser?.name || 'Reader',
+          userEmail: currentUser?.email || 'reader@lexora.app',
+          plan: selectedPlan,
+          utr: transactionRef.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Payment submission failed.');
+      }
+
+      // 2. Local context record
       const record = await submitPayment({
         productType,
         storyId: story?.id,
@@ -68,6 +127,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         amount,
         transactionRef: transactionRef.trim(),
       });
+
+      // Entitle member
+      if (isElite) {
+        togglePremiumSubscription(true);
+      }
 
       setPaymentSuccess(record);
       if (onSuccess) onSuccess();
@@ -79,208 +143,319 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 backdrop-blur-md animate-fade-in overflow-y-auto ${
+      isDark ? 'bg-black/85' : 'bg-[#182B32]/40'
+    }`}>
+      <div className={`relative w-full max-w-xl rounded-3xl overflow-hidden border max-h-[92vh] flex flex-col my-auto transition-colors ${
+        isDark
+          ? 'bg-[#090a0f] border-amber-500/35 text-slate-100 shadow-[0_25px_70px_rgba(0,0,0,0.9),0_0_35px_rgba(243,186,56,0.3)]'
+          : 'bg-white border-[#D9F5F5] text-[#182B32] shadow-[0_25px_70px_rgba(24,43,50,0.15),0_0_35px_rgba(38,247,247,0.2)]'
+      }`}>
         {/* Header */}
-        <div className="relative p-6 bg-gradient-to-br from-slate-900 to-slate-800 text-white flex items-start justify-between">
+        <div className={`relative p-5 sm:p-6 border-b flex items-start justify-between ${
+          isDark
+            ? 'bg-gradient-to-r from-amber-950/60 via-[#101217] to-black border-amber-500/25'
+            : 'bg-gradient-to-r from-[#F7FFFF] via-white to-[#F7FFFF] border-[#D9F5F5]'
+        }`}>
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#26F7F7]/20 border border-[#26F7F7]/40 text-[#26F7F7] text-xs font-semibold">
-              <Sparkles className="w-3 h-3" />
-              {productType === 'monthly_subscription' ? 'LEXORA Premium Access' : 'Permanent Story Unlock'}
+            <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold ${
+              isDark
+                ? 'bg-amber-500/15 border border-amber-500/40 text-[#ffd700]'
+                : 'bg-[#26F7F7]/15 border border-[#26F7F7]/40 text-[#182B32]'
+            }`}>
+              <Crown className="w-3.5 h-3.5" />
+              <span>{isElite ? 'Digital Lexora Elite Card' : 'Story Unlock'}</span>
             </div>
-            <h3 className="text-xl font-bold font-sans-modern tracking-tight">
-              {productType === 'monthly_subscription'
-                ? `LEXORA Premium — ₹${amount}/month`
+            <h3 className={`font-serif text-xl sm:text-2xl font-bold tracking-tight ${
+              isDark ? 'text-white' : 'text-[#182B32]'
+            }`}>
+              {isElite
+                ? `LEXORA Elite Pass — ₹${amount}${selectedPlan === 'yearly_2149' ? '/year' : '/month'}`
                 : `Unlock "${story?.title}" — ₹${amount}`}
             </h3>
-            <p className="text-xs text-slate-300">
-              Direct verification via UPI ID: <span className="font-mono text-[#26F7F7] font-semibold">{destinationUpi}</span>
+            <p className={`text-xs ${isDark ? 'text-amber-200/70' : 'text-[#64748B]'}`}>
+              Beyond the Loop · Official Membership Activation
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+            className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+              isDark
+                ? 'hover:bg-white/10 text-slate-400 hover:text-white'
+                : 'hover:bg-[#E9FFFF] text-[#64748B] hover:text-[#182B32]'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-800 text-sm">
-          {paymentSuccess ? (
-            /* Success Receipt View */
-            <div className="text-center py-6 space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full bg-teal-50 border-2 border-[#26F7F7] flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-teal-600" />
+        <div className={`p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm ${
+          isDark ? 'text-slate-300' : 'text-[#182B32]'
+        }`}>
+          {/* ==================================================================== */}
+          {/* GOOGLE PLAY CONSUMPTION-ONLY NOTICE */}
+          {/* ==================================================================== */}
+          {isGooglePlay ? (
+            <div className={`p-5 rounded-2xl border space-y-3 text-center ${
+              isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+            }`}>
+              <Smartphone className={`w-8 h-8 mx-auto ${isDark ? 'text-[#ffd700]' : 'text-[#182B32]'}`} />
+              <h4 className={`font-serif font-bold text-base ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
+                Google Play Store Notice
+              </h4>
+              <p className={`text-xs leading-relaxed font-sans ${isDark ? 'text-slate-300' : 'text-[#64748B]'}`}>
+                This release of LEXORA is consumption-only in compliance with Google Play Store Payments Policy.
+                In-app digital purchases and UPI submissions are disabled in this build.
+              </p>
+              <div className={`p-3 rounded-xl border text-xs text-left space-y-1 font-sans ${
+                isDark ? 'bg-black/60 border-white/10 text-amber-200' : 'bg-white border-[#D9F5F5] text-[#182B32]'
+              }`}>
+                <p>• Existing Elite members: Sign in to access your digital card, passport, and unlimited library.</p>
+                <p>• To initiate a new membership, visit our official web portal at <strong>lexora.app</strong>.</p>
               </div>
+              <button
+                onClick={onClose}
+                className={`w-full py-2.5 rounded-full font-serif font-bold text-xs cursor-pointer transition-colors ${
+                  isDark ? 'bg-white/10 hover:bg-white/15 text-white' : 'bg-[#26F7F7] hover:bg-[#1de9e9] text-[#182B32]'
+                }`}
+              >
+                Close
+              </button>
+            </div>
+          ) : paymentSuccess ? (
+            /* ==================================================================== */
+            /* SUCCESS CONFIRMATION & CARD DISPLAY */
+            /* ==================================================================== */
+            <div className="text-center space-y-6 animate-fade-in py-4">
+              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-emerald-300 shadow-[0_0_25px_rgba(16,185,129,0.5)]">
+                <CheckCircle className="w-8 h-8" />
+              </div>
+
               <div className="space-y-1">
-                <h4 className="text-xl font-bold text-slate-900">Payment Verified & Access Granted!</h4>
-                <p className="text-slate-600 text-xs">
-                  {productType === 'monthly_subscription'
-                    ? 'You now have unlimited reading access to all premium serialized stories on LEXORA.'
-                    : `You have permanently unlocked all current and future chapters of "${story?.title}".`}
+                <h4 className={`font-serif text-2xl font-bold ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
+                  Payment Submitted Successfully!
+                </h4>
+                <p className={`text-xs font-mono ${isDark ? 'text-amber-200/90' : 'text-[#64748B]'}`}>
+                  Reference: <span className={`font-bold ${isDark ? 'text-[#ffd700]' : 'text-[#182B32]'}`}>{transactionRef}</span>
+                </p>
+                <p className={`text-xs max-w-md mx-auto pt-1 font-sans ${isDark ? 'text-slate-300' : 'text-[#64748B]'}`}>
+                  Your Elite credentials have been dispatched to the Founder Verification Board. Your name is now permanently engraved on your Digital Lexora Elite Card!
                 </p>
               </div>
 
-              {/* Receipt Box */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left font-mono text-xs space-y-2">
-                <div className="flex justify-between border-b border-slate-200 pb-2">
-                  <span className="text-slate-500">Transaction Ref:</span>
-                  <span className="font-bold text-slate-900">{paymentSuccess.transactionRef}</span>
+              {/* Show the Engraved Card */}
+              {isElite && (
+                <div className="pt-2">
+                  <LexoraEliteCard memberName={currentUser?.name || 'Patron of Letters'} />
                 </div>
-                <div className="flex justify-between border-b border-slate-200 pb-2">
-                  <span className="text-slate-500">Amount Paid:</span>
-                  <span className="font-bold text-teal-600">₹{amount}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-200 pb-2">
-                  <span className="text-slate-500">Recipient UPI:</span>
-                  <span className="text-slate-900">{destinationUpi}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Timestamp:</span>
-                  <span className="text-slate-700">{new Date(paymentSuccess.createdAt).toLocaleString()}</span>
-                </div>
-              </div>
+              )}
 
               <button
                 onClick={onClose}
-                className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-2xl shadow-md transition-all cursor-pointer"
+                className={`w-full py-3.5 rounded-full font-serif font-bold text-xs shadow-lg hover:scale-105 transition-all cursor-pointer ${
+                  isDark
+                    ? 'bg-gradient-to-r from-amber-400 via-[#f3ba38] to-amber-500 text-slate-950'
+                    : 'bg-[#26F7F7] hover:bg-[#1de9e9] text-[#182B32]'
+                }`}
               >
-                Start Reading Now
+                Enter LEXORA Beyond the Loop
               </button>
             </div>
           ) : (
-            /* Purchase Details & Payment Form */
+            /* ==================================================================== */
+            /* STANDARD CHECKOUT FLOW (WEBSITE) */
+            /* ==================================================================== */
             <>
-              {/* Product Info Card */}
-              {productType === 'story_unlock' && story && (
-                <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200/80 items-center">
-                  <img
-                    src={story.coverImage}
-                    alt={story.title}
-                    className="w-16 h-22 object-cover rounded-xl shadow-xs shrink-0"
-                  />
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-teal-600 bg-teal-50 px-2 py-0.5 rounded-md">
-                      {story.genre}
-                    </span>
-                    <h4 className="font-bold text-slate-900 text-base leading-tight">{story.title}</h4>
-                    <p className="text-xs text-slate-500">By {story.authorName} • {story.partsCount} Parts</p>
-                    <p className="text-[11px] text-slate-600">
-                      ★ <span className="font-semibold text-slate-900">{story.ratingAverage}</span> ({story.ratingCount} ratings)
-                    </p>
+              {/* Plan Switcher for Elite */}
+              {isElite && (
+                <div className="space-y-2">
+                  <label className={`font-serif font-bold text-xs block ${isDark ? 'text-slate-200' : 'text-[#182B32]'}`}>
+                    Choose Membership Duration:
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlan('monthly_299')}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        selectedPlan === 'monthly_299'
+                          ? isDark
+                            ? 'bg-amber-500/20 border-amber-400 text-white shadow-[0_0_15px_rgba(243,186,56,0.25)]'
+                            : 'bg-[#E9FFFF] border-[#26F7F7] text-[#182B32] shadow-[0_0_15px_rgba(38,247,247,0.25)]'
+                          : isDark
+                          ? 'bg-black/40 border-white/10 text-slate-400 hover:text-white'
+                          : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#64748B] hover:text-[#182B32] hover:bg-[#E9FFFF]'
+                      }`}
+                    >
+                      <span className={`font-serif font-bold text-sm block ${isDark ? 'text-amber-200' : 'text-[#182B32]'}`}>
+                        Monthly Plan
+                      </span>
+                      <span className={`font-mono text-base font-bold block ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
+                        ₹299 / month
+                      </span>
+                      <span className={`text-[10px] font-sans ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
+                        Full Elite Card access
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPlan('yearly_2149')}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                        selectedPlan === 'yearly_2149'
+                          ? isDark
+                            ? 'bg-amber-500/20 border-amber-400 text-white shadow-[0_0_15px_rgba(243,186,56,0.25)]'
+                            : 'bg-[#E9FFFF] border-[#26F7F7] text-[#182B32] shadow-[0_0_15px_rgba(38,247,247,0.25)]'
+                          : isDark
+                          ? 'bg-black/40 border-white/10 text-slate-400 hover:text-white'
+                          : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#64748B] hover:text-[#182B32] hover:bg-[#E9FFFF]'
+                      }`}
+                    >
+                      <span className={`absolute -top-2 right-2 px-2 py-0.5 rounded-full font-mono font-bold text-[9px] uppercase ${
+                        isDark ? 'bg-gradient-to-r from-amber-400 to-[#f3ba38] text-black' : 'bg-[#26F7F7] text-[#182B32]'
+                      }`}>
+                        Save 40%
+                      </span>
+                      <span className={`font-serif font-bold text-sm block ${isDark ? 'text-amber-200' : 'text-[#182B32]'}`}>
+                        Yearly Pass
+                      </span>
+                      <span className={`font-mono text-base font-bold block ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
+                        ₹2,149 / year
+                      </span>
+                      <span className={`text-[10px] font-sans ${isDark ? 'text-amber-300' : 'text-[#182B32] font-semibold'}`}>
+                        Founder Preferred
+                      </span>
+                    </button>
                   </div>
                 </div>
               )}
 
-              {/* What this unlocks */}
-              <div className="p-4 rounded-2xl bg-teal-50/60 border border-[#26F7F7]/50 space-y-2">
-                <div className="flex items-center gap-2 font-semibold text-teal-950 text-xs">
-                  <ShieldCheck className="w-4 h-4 text-teal-600" />
-                  <span>What your ₹{amount} payment unlocks:</span>
-                </div>
-                <ul className="text-xs text-slate-700 space-y-1.5 list-disc list-inside">
-                  {productType === 'monthly_subscription' ? (
-                    <>
-                      <li>Full, unlimited access to <strong>all Premium Stories</strong> on LEXORA.</li>
-                      <li>No need to pay ₹19 per individual story.</li>
-                      <li>Verified insider access and community discussion circle privileges.</li>
-                      <li>Ability to submit constructive editorial suggestions to writers.</li>
-                    </>
-                  ) : (
-                    <>
-                      <li><strong>Instant access to all parts</strong> of "{story?.title}".</li>
-                      <li><strong>All future chapters</strong> published for this story remain 100% free for you.</li>
-                      <li>One-time payment of ₹19 — no recurring charge for this story.</li>
-                      <li>Ad-free, distraction-free reading experience.</li>
-                    </>
-                  )}
-                </ul>
-              </div>
-
-              {/* Step 1: Scan / UPI Details */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Step 1: Transfer ₹{amount} via UPI</h4>
-                  <span className="text-xs font-mono font-bold text-teal-700">₹{amount}.00</span>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] text-slate-400">Payment Destination (UPI ID)</p>
-                      <p className="text-base font-mono font-bold text-[#26F7F7]">{destinationUpi}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={copyUpiId}
-                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      {copied ? 'Copied!' : 'Copy UPI'}
-                    </button>
-                  </div>
-
-                  {/* QR preview & App link */}
-                  <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
-                    <a
-                      href={upiLink}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#26F7F7] text-slate-950 font-bold text-xs hover:bg-[#00d4d4] transition-colors"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      Open UPI App (GPay / PhonePe / Paytm / Fam)
-                    </a>
-                    <span className="text-[11px] text-slate-400">Merchant: LEXORA</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 2: Verification Input */}
-              <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Digital Lexora Elite Card Preview */}
+              {isElite && (
                 <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={`font-serif font-bold ${isDark ? 'text-amber-200' : 'text-[#182B32]'}`}>
+                      Your Engraved Card Preview:
+                    </span>
+                    <span className={`text-[10px] font-mono ${isDark ? 'text-amber-400/80' : 'text-[#64748B]'}`}>
+                      Engraved: {currentUser?.name || 'Your Name Here'}
+                    </span>
+                  </div>
+                  <LexoraEliteCard memberName={currentUser?.name || 'Your Name'} />
+                </div>
+              )}
+
+              {/* 3 Best Features Callout */}
+              {isElite && (
+                <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+                  <div className={`p-2.5 rounded-xl border ${
+                    isDark ? 'bg-black/60 border-amber-500/30' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+                  }`}>
+                    <span className={`font-serif font-bold block text-[11px] ${isDark ? 'text-amber-200' : 'text-[#182B32]'}`}>1. Passport</span>
+                    <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>Category Stamps</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${
+                    isDark ? 'bg-black/60 border-amber-500/30' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+                  }`}>
+                    <span className={`font-serif font-bold block text-[11px] ${isDark ? 'text-amber-200' : 'text-[#182B32]'}`}>2. Hall of Fame</span>
+                    <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>Golden Library</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${
+                    isDark ? 'bg-black/60 border-amber-500/30' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+                  }`}>
+                    <span className={`font-serif font-bold block text-[11px] ${isDark ? 'text-amber-200' : 'text-[#182B32]'}`}>3. Verification</span>
+                    <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>Black &amp; Gold Tick</span>
+                  </div>
+                </div>
+              )}
+
+              {/* UPI Payment Box */}
+              <div className={`p-4 rounded-2xl border space-y-3 ${
+                isDark ? 'bg-black/70 border-amber-500/35' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-serif font-bold ${isDark ? 'text-slate-200' : 'text-[#182B32]'}`}>
+                    Pay via UPI (GPay, PhonePe, Paytm, BHIM):
+                  </span>
+                  <span className={`text-base font-mono font-bold ${isDark ? 'text-[#ffd700]' : 'text-[#182B32]'}`}>
+                    ₹{amount}
+                  </span>
+                </div>
+
+                <div className={`flex items-center justify-between p-3 rounded-xl border ${
+                  isDark ? 'bg-white/5 border-white/10' : 'bg-white border-[#D9F5F5]'
+                }`}>
+                  <div className="space-y-0.5">
+                    <span className={`text-[10px] uppercase font-mono ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>Official VPA</span>
+                    <p className={`font-mono text-xs sm:text-sm font-bold ${isDark ? 'text-amber-200' : 'text-[#182B32]'}`}>
+                      {destinationUpi}
+                    </p>
+                  </div>
+                  <button
+                    onClick={copyUpiId}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      isDark
+                        ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300'
+                        : 'bg-[#26F7F7]/20 hover:bg-[#26F7F7]/30 text-[#182B32]'
+                    }`}
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{copied ? 'Copied!' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* UTR Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Step 2: Enter UPI Ref / UTR Number
+                    <label className={`font-serif font-bold text-xs ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
+                      Enter 12-Digit Bank UTR / Reference Number:
                     </label>
                     <button
                       type="button"
                       onClick={handleFillDemoRef}
-                      className="text-[11px] text-teal-600 hover:text-teal-700 underline font-medium cursor-pointer"
+                      className={`text-[10px] font-mono underline cursor-pointer ${
+                        isDark ? 'text-amber-400/80 hover:text-amber-300' : 'text-[#182B32]/70 hover:text-[#182B32]'
+                      }`}
                     >
-                      Fill Demo Ref
+                      Fill Demo UTR
                     </button>
                   </div>
                   <input
                     type="text"
-                    placeholder="e.g. 992148102941 or UPI-REF-..."
                     value={transactionRef}
                     onChange={e => setTransactionRef(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#26F7F7] focus:border-teal-500 font-mono text-sm bg-slate-50"
+                    placeholder="e.g. 428192039481"
+                    maxLength={24}
+                    className={`w-full p-3 rounded-xl font-mono text-sm focus:outline-hidden ${
+                      isDark
+                        ? 'bg-black border border-amber-500/40 text-amber-200 focus:border-amber-400'
+                        : 'bg-white border border-[#D9F5F5] text-[#182B32] focus:border-[#26F7F7]'
+                    }`}
                   />
-                  <p className="text-[11px] text-slate-500">
-                    Enter the 12-digit transaction ID or reference number shown in your UPI app receipt.
+                  <p className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
+                    Verified directly against official bank statements by Founder Shreyanshu Mishra.
                   </p>
                 </div>
 
                 {error && (
-                  <div className="p-3 rounded-xl bg-red-50 text-red-700 text-xs border border-red-200">
-                    {error}
-                  </div>
+                  <p className="text-xs text-rose-400 font-medium">{error}</p>
                 )}
 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-3.5 px-4 bg-slate-950 hover:bg-slate-800 text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className={`w-full py-3.5 rounded-full font-serif font-bold text-xs sm:text-sm active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    isDark
+                      ? 'bg-gradient-to-r from-[#ffd700] via-[#f3ba38] to-[#d4af37] text-black shadow-[0_0_20px_rgba(243,186,56,0.4)] hover:scale-102'
+                      : 'bg-[#26F7F7] hover:bg-[#1de9e9] text-[#182B32] shadow-[0_0_20px_rgba(38,247,247,0.3)] hover:scale-102'
+                  }`}
                 >
-                  {submitting ? (
-                    'Verifying Reference...'
-                  ) : (
-                    <>
-                      <span>Submit & Unlock Access</span>
-                      <ArrowRight className="w-4 h-4 text-[#26F7F7]" />
-                    </>
-                  )}
+                  <Crown className="w-4 h-4 stroke-[2.5]" />
+                  <span>
+                    {submitting ? 'Submitting to Founder Board...' : `Submit Verification for ₹${amount}`}
+                  </span>
                 </button>
               </form>
             </>

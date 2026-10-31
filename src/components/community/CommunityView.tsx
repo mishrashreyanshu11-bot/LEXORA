@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../context/AuthContext';
 import { FounderBadge, VerifiedBadge } from '../common/FounderBadge';
+import { LexoraSymbol } from '../common/LexoraSymbol';
 import {
   MessageSquare,
   Heart,
@@ -13,14 +14,21 @@ import {
   Send,
   X,
   CheckCircle,
+  ExternalLink,
+  MessageCircle,
+  Instagram,
+  Users,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface CommunityViewProps {
+  onBack?: () => void;
   onSelectStory?: (storyId: string) => void;
   onOpenUpgradeModal?: () => void;
 }
 
 export const CommunityView: React.FC<CommunityViewProps> = ({
+  onBack,
   onSelectStory,
   onOpenUpgradeModal,
 }) => {
@@ -36,6 +44,9 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
   const [threadContent, setThreadContent] = useState('');
   const [threadCategory, setThreadCategory] = useState<any>('Story Discussion');
   const [reportModalThreadId, setReportModalThreadId] = useState<string | null>(null);
+
+  const whatsappUrl = 'https://whatsapp.com/channel/0029Vb8s4JuDuMRn4H7z0n3t';
+  const instagramUrl = 'https://www.instagram.com/lexora.____?srtk=ZHkxMW1nd2NtN21h&utm_source=qr';
 
   const canPost = Boolean(isPremiumSubscriber || isFounder || currentUser?.role === 'writer');
 
@@ -68,131 +79,191 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24">
-      {/* Community Header */}
-      <div className="bg-white border-b border-slate-200 py-8 px-4">
-        <div className="max-w-4xl mx-auto space-y-4">
+    <div className="min-h-screen bg-[#080808] text-[#F5F1E8] pb-28 selection:bg-[#D4AF37]/30 selection:text-amber-100">
+      {/* ==================================================================== */}
+      {/* 1. COMMUNITY HEADER & OFFICIAL CHANNELS (WHATSAPP & INSTAGRAM) */}
+      {/* ==================================================================== */}
+      <section className="border-b border-[#D4AF37]/25 bg-gradient-to-b from-[#121318] via-[#0d0e13] to-[#080808] pt-8 pb-10 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/60 hover:bg-black border border-amber-500/35 text-amber-200 text-xs font-semibold cursor-pointer transition-all"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+          )}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#26F7F7]/15 text-teal-950 text-xs font-bold uppercase tracking-wider border border-[#26F7F7]/40">
-                <Sparkles className="w-3.5 h-3.5 text-teal-600" />
-                <span>LEXORA Literary Circle</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#D4AF37]/15 text-[#F1D58A] text-xs font-bold uppercase tracking-wider border border-[#D4AF37]/40">
+                <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>LEXORA Global Literary Circles</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold font-sans-modern tracking-tight">
-                Discussions &amp; Writer Circles
+              <h1 className="text-2xl md:text-3xl font-serif font-bold text-white tracking-tight">
+                Community, Discussions &amp; Exchange
               </h1>
-              <p className="text-xs text-slate-500">
-                Thoughtful literary discussions, chapter theories, writer recommendations, and craft exchange.
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl font-sans leading-relaxed">
+                Where readers and authors unite. Connect across our official WhatsApp and Instagram channels, critique craft, and share thoughts beyond the loop.
               </p>
             </div>
 
             {canPost ? (
               <button
                 onClick={() => setNewThreadModalOpen(true)}
-                className="px-5 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md shrink-0"
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-[#ffd700] via-[#f3ba38] to-[#d4af37] text-black font-serif font-bold text-xs flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(243,186,56,0.35)] hover:scale-105 active:scale-95 transition-all shrink-0"
               >
-                <Plus className="w-4 h-4 text-[#26F7F7]" />
+                <Plus className="w-4 h-4 stroke-[2.5]" />
                 <span>Start Discussion</span>
               </button>
             ) : (
               <button
                 onClick={onOpenUpgradeModal}
-                className="px-4 py-2.5 rounded-2xl bg-teal-50 border border-[#26F7F7] text-teal-950 font-bold text-xs flex items-center gap-2 cursor-pointer shrink-0"
+                className="px-5 py-2.5 rounded-full bg-black/60 border border-[#D4AF37]/60 text-[#F1D58A] font-serif font-bold text-xs flex items-center gap-2 cursor-pointer shrink-0 hover:bg-[#D4AF37]/10 transition-colors"
               >
-                <Lock className="w-3.5 h-3.5 text-teal-600" />
-                <span>Unlock Premium Circle</span>
+                <Lock className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>Elite Discussion Access</span>
               </button>
             )}
           </div>
 
-          {/* Category Filter Chips */}
-          <div className="flex gap-2 overflow-x-auto pb-1 text-xs font-semibold scrollbar-none">
-            {['All', 'Story Discussion', 'Writer Recommendation', 'Constructive Feedback', 'General'].map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat as any)}
-                className={`px-3.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                  activeCategory === cat
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          {/* Official Community Action Cards: WhatsApp & Instagram */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            {/* WhatsApp Community Card */}
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group p-5 rounded-3xl bg-[#171717] hover:bg-[#1c1c1c] border border-emerald-500/35 hover:border-emerald-400/70 shadow-[0_10px_30px_rgba(0,0,0,0.8)] transition-all flex items-center justify-between gap-4 cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-400/50 flex items-center justify-center text-emerald-400 shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.3)] group-hover:scale-105 transition-transform">
+                  <MessageCircle className="w-6 h-6 stroke-[2.2]" />
+                </div>
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif font-bold text-sm sm:text-base text-white group-hover:text-emerald-300 truncate">
+                      LEXORA WhatsApp Community
+                    </h3>
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                      Channel
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Join for real-time chapter alerts, author dispatches, and quarterly arena news.
+                  </p>
+                </div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-300 group-hover:bg-emerald-500 group-hover:text-black transition-all shrink-0">
+                <ExternalLink className="w-4 h-4" />
+              </div>
+            </a>
+
+            {/* Instagram Community Card */}
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group p-5 rounded-3xl bg-[#171717] hover:bg-[#1c1c1c] border border-rose-500/35 hover:border-rose-400/70 shadow-[0_10px_30px_rgba(0,0,0,0.8)] transition-all flex items-center justify-between gap-4 cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-rose-500/20 to-purple-500/20 border border-rose-400/50 flex items-center justify-center text-rose-400 shrink-0 shadow-[0_0_15px_rgba(244,63,94,0.3)] group-hover:scale-105 transition-transform">
+                  <Instagram className="w-6 h-6 stroke-[2.2]" />
+                </div>
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif font-bold text-sm sm:text-base text-white group-hover:text-rose-300 truncate">
+                      Instagram: @lexora.____
+                    </h3>
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 shrink-0">
+                      Official
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    Explore visual worldbuilding, featured author reels, and daily literary quotes.
+                  </p>
+                </div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-rose-500/15 text-rose-300 group-hover:bg-rose-500 group-hover:text-black transition-all shrink-0">
+                <ExternalLink className="w-4 h-4" />
+              </div>
+            </a>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Threads List */}
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
-        {filteredThreads.map(thread => {
-          const isLiked = currentUser && thread.likedByUserIds.includes(currentUser.id);
-          return (
+      {/* ==================================================================== */}
+      {/* 2. DISCUSSION BOARD & CIRCLES */}
+      {/* ==================================================================== */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        {/* Category Filter Pills */}
+        <div className="flex gap-2 overflow-x-auto text-xs font-serif font-bold pb-2 scrollbar-none">
+          {['All', 'Story Discussion', 'Writer Recommendation', 'Constructive Feedback', 'General'].map(cat => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat as any)}
+              className={`px-4 py-2 rounded-full whitespace-nowrap transition-all cursor-pointer ${
+                activeCategory === cat
+                  ? 'bg-gradient-to-r from-[#ffd700] via-[#f3ba38] to-[#d4af37] text-black shadow-[0_0_12px_rgba(243,186,56,0.3)]'
+                  : 'bg-[#171717] text-slate-300 hover:bg-white/10 hover:text-white border border-white/10'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Threads List */}
+        <div className="space-y-4">
+          {filteredThreads.map(thread => (
             <div
               key={thread.id}
-              className="p-5 md:p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs hover:border-[#26F7F7] transition-all space-y-3"
+              className="p-5 sm:p-6 rounded-3xl bg-[#171717] border border-[#D4AF37]/20 shadow-[0_10px_25px_rgba(0,0,0,0.7)] space-y-3.5 hover:border-[#D4AF37]/45 transition-all"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
                   <img
-                    src={thread.authorAvatar}
+                    src={thread.authorAvatar || '/assets/aistudio/IMG_6033_dd143268.jpeg'}
                     alt={thread.authorName}
-                    className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
+                    className="w-9 h-9 rounded-full object-cover ring-2 ring-[#D4AF37]/40"
                   />
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-xs text-slate-900">{thread.authorName}</span>
-                      {thread.authorRole === 'founder' ? (
-                        <FounderBadge size="sm" showLabel={false} />
-                      ) : thread.isPremiumAuthor ? (
-                        <VerifiedBadge size="sm" />
-                      ) : null}
+                      <span className="font-serif font-bold text-sm text-white">
+                        {thread.authorName}
+                      </span>
+                      {thread.authorRole === 'founder' && <FounderBadge size="xs" />}
+                      {thread.isPremiumAuthor && <VerifiedBadge size="xs" />}
                     </div>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {new Date(thread.createdAt).toLocaleDateString()}
+                    <span className="text-[10px] text-[#F1D58A]/80 font-mono">
+                      {new Date(thread.createdAt).toLocaleDateString()} · {thread.category}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-semibold">
-                    {thread.category}
-                  </span>
-                  <button
-                    onClick={() => handleReportThread(thread.id, thread.title)}
-                    className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-red-600"
-                    title="Report discussion"
-                  >
-                    <Flag className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleReportThread(thread.id, thread.title)}
+                  className="text-slate-500 hover:text-slate-300 text-xs p-1"
+                  title="Report Post"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              {/* Title & Content */}
-              <div className="space-y-1">
-                <h3 className="font-bold text-base text-slate-900 leading-snug">{thread.title}</h3>
-                <p className="text-xs text-slate-600 leading-relaxed font-sans">{thread.content}</p>
+              <div className="space-y-1.5">
+                <h3 className="font-serif font-bold text-base text-white">{thread.title}</h3>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans whitespace-pre-line">
+                  {thread.content}
+                </p>
               </div>
 
-              {/* Story Tag if associated */}
-              {thread.storyTitle && (
-                <div className="p-2 rounded-xl bg-slate-50 border border-slate-200/60 inline-flex items-center gap-1.5 text-xs text-slate-700">
-                  <span className="text-[10px] font-bold uppercase text-teal-700">Story:</span>
-                  <span className="font-semibold">{thread.storyTitle}</span>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <div className="flex items-center justify-between pt-2 border-t border-white/10 text-xs text-slate-400">
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => toggleLikeThread(thread.id)}
-                    className={`flex items-center gap-1.5 font-semibold transition-colors cursor-pointer ${
-                      isLiked ? 'text-red-500' : 'hover:text-slate-900'
-                    }`}
+                    className="flex items-center gap-1.5 hover:text-rose-400 transition-colors cursor-pointer"
                   >
-                    <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+                    <Heart className="w-4 h-4" />
                     <span>{thread.likesCount}</span>
                   </button>
 
@@ -201,71 +272,91 @@ export const CommunityView: React.FC<CommunityViewProps> = ({
                     <span>{thread.repliesCount} replies</span>
                   </div>
                 </div>
+
+                {thread.storyId && onSelectStory && (
+                  <button
+                    onClick={() => onSelectStory(thread.storyId!)}
+                    className="text-[11px] text-[#F1D58A] hover:underline cursor-pointer"
+                  >
+                    View Referenced Story →
+                  </button>
+                )}
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
 
-      {/* New Thread Modal */}
+          {filteredThreads.length === 0 && (
+            <div className="text-center py-12 rounded-3xl bg-[#171717] border border-white/10 space-y-2">
+              <MessageSquare className="w-10 h-10 text-slate-600 mx-auto" />
+              <p className="font-serif font-bold text-white text-sm">No discussions in this circle yet</p>
+              <p className="text-xs text-slate-400">Be the first to share an insight or question!</p>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* New Discussion Modal */}
       {newThreadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-slate-900 border border-slate-100">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-base">New Circle Discussion</h3>
-              <button
-                onClick={() => setNewThreadModalOpen(false)}
-                className="p-1 rounded-full text-slate-400 hover:text-slate-600"
-              >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg bg-[#080808] rounded-3xl border border-[#D4AF37]/40 p-6 space-y-5 text-[#F5F1E8] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[#D4AF37]/20 pb-3">
+              <h3 className="font-serif font-bold text-base text-white">Start New Discussion</h3>
+              <button onClick={() => setNewThreadModalOpen(false)} className="p-1 text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateThreadSubmit} className="space-y-4 text-xs">
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-600">Category</label>
+            <form onSubmit={handleCreateThreadSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-serif font-bold text-slate-300 block mb-1">Circle Category</label>
                 <select
                   value={threadCategory}
-                  onChange={e => setThreadCategory(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-slate-50"
+                  onChange={e => setThreadCategory(e.target.value)}
+                  className="w-full bg-[#171717] border border-white/20 p-2.5 rounded-xl text-xs text-white"
                 >
                   <option value="Story Discussion">Story Discussion</option>
                   <option value="Writer Recommendation">Writer Recommendation</option>
                   <option value="Constructive Feedback">Constructive Feedback</option>
-                  <option value="General">General Literary Exchange</option>
+                  <option value="General">General</option>
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-600">Discussion Title</label>
+              <div>
+                <label className="text-xs font-serif font-bold text-slate-300 block mb-1">Title</label>
                 <input
                   type="text"
-                  placeholder="e.g. Symbolism and pacing in Chapter 4..."
                   value={threadTitle}
                   onChange={e => setThreadTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#26F7F7]"
-                  required
+                  placeholder="What is on your literary mind?"
+                  className="w-full bg-[#171717] border border-white/20 p-2.5 rounded-xl text-xs text-white"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="font-semibold text-slate-600">Body</label>
+              <div>
+                <label className="text-xs font-serif font-bold text-slate-300 block mb-1">Thoughts &amp; Context</label>
                 <textarea
-                  rows={5}
-                  placeholder="Share thoughtful arguments, questions, or perspectives..."
                   value={threadContent}
                   onChange={e => setThreadContent(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#26F7F7]"
-                  required
+                  placeholder="Share your perspectives, craft analysis, or chapter theories..."
+                  className="w-full bg-[#171717] border border-white/20 p-3 rounded-xl text-xs text-white h-28 resize-none"
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full py-3 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                Post Discussion
-              </button>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setNewThreadModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#ffd700] via-[#f3ba38] to-[#d4af37] text-black font-serif font-bold text-xs shadow-md"
+                >
+                  Post to Community
+                </button>
+              </div>
             </form>
           </div>
         </div>

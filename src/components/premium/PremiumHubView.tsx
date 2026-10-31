@@ -3,6 +3,7 @@ import { useStories } from '../../context/StoryContext';
 import { useAuth } from '../../context/AuthContext';
 import { VerifiedBadge, FounderBadge, CrownBadge } from '../common/FounderBadge';
 import { InkVaultModal } from '../inkvault/InkVaultModal';
+import { useTheme } from '../../context/ThemeContext';
 import {
   Sparkles,
   Crown,
@@ -26,9 +27,11 @@ import {
   ShieldCheck,
   ChevronRight,
   Volume2,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface PremiumHubViewProps {
+  onBack?: () => void;
   onOpenUpgradeModal: () => void;
   onOpenEditor: () => void;
   onOpenArena: () => void;
@@ -37,6 +40,7 @@ interface PremiumHubViewProps {
 }
 
 export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
+  onBack,
   onOpenUpgradeModal,
   onOpenEditor,
   onOpenArena,
@@ -45,6 +49,7 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
 }) => {
   const { settings, writersCircles, stories } = useStories();
   const { currentUser, isFounder, isPremiumSubscriber } = useAuth();
+  const { isDark } = useTheme();
 
   const [activeInteractiveFeature, setActiveInteractiveFeature] = useState<number | null>(null);
   const [inkVaultOpen, setInkVaultOpen] = useState(false);
@@ -245,27 +250,74 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 pb-28">
+    <div
+      className={`min-h-screen pb-28 transition-colors duration-200 ${
+        isDark ? 'bg-[#06070a] text-slate-100' : 'bg-white text-[#182B32]'
+      }`}
+      style={
+        !isDark
+          ? {
+              background:
+                'radial-gradient(ellipse at 75% 25%, rgba(38,247,247,0.15) 0%, rgba(207,255,255,0.10) 40%, transparent 75%), #FFFFFF',
+            }
+          : undefined
+      }
+    >
       {/* Hero Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white pt-14 pb-16 px-6 md:px-12 border-b border-amber-500/20">
+      <section
+        className={`relative overflow-hidden pt-14 pb-16 px-6 md:px-12 border-b transition-colors ${
+          isDark
+            ? 'bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white border-amber-500/20'
+            : 'bg-[#F7FFFF] text-[#182B32] border-[#D9F5F5]'
+        }`}
+      >
         <div className="max-w-4xl mx-auto space-y-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold uppercase tracking-widest shadow-md">
-            <Crown className="w-4 h-4 text-amber-400" />
+          {onBack && (
+            <div className="flex justify-start">
+              <button
+                onClick={onBack}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all border ${
+                  isDark
+                    ? 'bg-slate-900 hover:bg-slate-800 text-amber-200 border-amber-500/30'
+                    : 'bg-white hover:bg-[#E9FFFF] text-[#182B32] border-[#D9F5F5]'
+                }`}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back</span>
+              </button>
+            </div>
+          )}
+          <div
+            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest shadow-xs border ${
+              isDark
+                ? 'bg-amber-400/10 border-amber-400/30 text-amber-300'
+                : 'bg-[#E9FFFF] border-[#26F7F7]/60 text-[#182B32]'
+            }`}
+          >
+            <Crown className={`w-4 h-4 ${isDark ? 'text-amber-400' : 'text-[#26F7F7]'}`} />
             <span>LEXORA PREMIUM · RADIATED INK</span>
           </div>
 
-          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white max-w-3xl mx-auto leading-tight">
+          <h1
+            className={`font-serif text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight max-w-3xl mx-auto leading-tight ${
+              isDark ? 'text-white' : 'text-[#182B32]'
+            }`}
+          >
             Unlock Your Literary Universe 👑
           </h1>
 
-          <p className="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className={`text-base sm:text-lg max-w-2xl mx-auto leading-relaxed ${isDark ? 'text-slate-300' : 'text-[#64748B]'}`}>
             Beyond the Loop. Sixteen elite authoring, curating, and reading capabilities engineered for serious storytellers and devoted readers.
           </p>
 
           <div className="pt-4 flex flex-wrap items-center justify-center gap-4">
             <button
               onClick={onOpenUpgradeModal}
-              className="px-8 py-4 rounded-full bg-gradient-to-r from-amber-400 via-amber-300 to-[#26f7db] hover:opacity-95 text-slate-950 font-extrabold text-sm tracking-tight shadow-xl flex items-center gap-2 cursor-pointer transition-all"
+              className={`px-8 py-4 rounded-full font-extrabold text-sm tracking-tight shadow-xl flex items-center gap-2 cursor-pointer transition-all ${
+                isDark
+                  ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-[#26f7db] hover:opacity-95 text-slate-950'
+                  : 'bg-[#26F7F7] hover:bg-[#18e6e6] text-[#182B32] shadow-[0_4px_16px_rgba(38,247,247,0.35)]'
+              }`}
             >
               <Crown className="w-4 h-4" />
               <span>Unlock Everything for ₹{settings.monthlySubscriptionPrice || 299}/month</span>
@@ -273,9 +325,13 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
 
             <button
               onClick={onOpenArena}
-              className="px-6 py-4 rounded-full bg-slate-900 hover:bg-slate-800 text-white border border-slate-700 font-semibold text-sm flex items-center gap-2 cursor-pointer transition-all"
+              className={`px-6 py-4 rounded-full font-semibold text-sm flex items-center gap-2 cursor-pointer transition-all border ${
+                isDark
+                  ? 'bg-slate-900 hover:bg-slate-800 text-white border-slate-700'
+                  : 'bg-white hover:bg-[#E9FFFF] text-[#182B32] border-[#D9F5F5]'
+              }`}
             >
-              <Trophy className="w-4 h-4 text-amber-400" />
+              <Trophy className={`w-4 h-4 ${isDark ? 'text-amber-400' : 'text-[#26F7F7]'}`} />
               <span>Explore Arena</span>
             </button>
           </div>
@@ -285,13 +341,13 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
       {/* 16 Features Grid */}
       <section className="max-w-5xl mx-auto px-6 py-14 space-y-8">
         <div className="text-center space-y-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#05c4c4]">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#00a8a8]">
             Comprehensive Suite
           </span>
-          <h2 className="font-serif text-3xl sm:text-4xl font-extrabold text-slate-950">
+          <h2 className={`font-serif text-3xl sm:text-4xl font-extrabold ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
             The 16 Pillars of LEXORA Premium
           </h2>
-          <p className="text-slate-500 text-sm max-w-xl mx-auto">
+          <p className={`text-sm max-w-xl mx-auto ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
             Click any feature below to interact with its live capabilities, demos, and dedicated studios.
           </p>
         </div>
@@ -300,45 +356,61 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
           {FEATURES_LIST.map(feat => (
             <div
               key={feat.num}
-              className="p-6 rounded-3xl bg-white border border-slate-200/90 hover:border-amber-400 hover:shadow-xl transition-all flex flex-col justify-between space-y-4 group"
+              className={`p-6 rounded-3xl border transition-all flex flex-col justify-between space-y-4 group ${
+                isDark
+                  ? 'bg-[#0b0c10] border-slate-800 hover:border-amber-400 hover:shadow-xl'
+                  : 'bg-white border-[#D9F5F5] hover:border-[#26F7F7] hover:shadow-md'
+              }`}
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:scale-105 transition-transform">
+                    <div
+                      className={`w-10 h-10 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-transform border ${
+                        isDark ? 'bg-slate-900 border-slate-800' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+                      }`}
+                    >
                       {feat.icon}
                     </div>
                     <div>
-                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">
+                      <span className={`text-[10px] font-extrabold uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
                         Pillar #{feat.num}
                       </span>
-                      <h3 className="font-bold text-base text-slate-950 group-hover:text-amber-900 leading-snug">
+                      <h3 className={`font-bold text-base leading-snug ${isDark ? 'text-white group-hover:text-amber-300' : 'text-[#182B32] group-hover:text-[#008f8f]'}`}>
                         {feat.title}
                       </h3>
                     </div>
                   </div>
 
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                  <span
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                      isDark ? 'bg-slate-900 text-slate-300' : 'bg-[#E9FFFF] text-[#182B32]'
+                    }`}
+                  >
                     {feat.badge}
                   </span>
                 </div>
 
-                <p className="text-xs font-semibold text-amber-900/80">
+                <p className={`text-xs font-semibold ${isDark ? 'text-amber-300/80' : 'text-[#182B32]/90'}`}>
                   {feat.tagline}
                 </p>
 
-                <p className="text-xs text-slate-500 leading-relaxed font-sans">
+                <p className={`text-xs leading-relaxed font-sans ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
                   {feat.description}
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div className={`pt-3 border-t flex items-center justify-between ${isDark ? 'border-slate-800' : 'border-[#D9F5F5]'}`}>
                 <button
                   onClick={feat.onClick}
-                  className="px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className={`px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                    isDark
+                      ? 'bg-slate-900 hover:bg-slate-800 text-white border-transparent'
+                      : 'bg-[#E9FFFF] hover:bg-[#d6f8f8] text-[#182B32] border-[#26F7F7]/60'
+                  }`}
                 >
                   <span>{feat.actionLabel}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-[#26f7db]" />
+                  <ChevronRight className={`w-3.5 h-3.5 ${isDark ? 'text-[#26f7db]' : 'text-[#182B32]'}`} />
                 </button>
               </div>
             </div>
@@ -348,43 +420,66 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
 
       {/* Feature 1 Interactive Modal: Preserve My Voice */}
       {activeInteractiveFeature === 1 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+          <div
+            className={`w-full max-w-lg rounded-3xl p-6 shadow-2xl border space-y-4 ${
+              isDark ? 'bg-[#0b0c10] border-slate-800 text-slate-100' : 'bg-white border-[#D9F5F5] text-[#182B32]'
+            }`}
+          >
+            <div className={`flex items-center justify-between border-b pb-2 ${isDark ? 'border-slate-800' : 'border-[#D9F5F5]'}`}>
               <div className="flex items-center gap-2">
                 <Brain className="w-5 h-5 text-purple-600" />
-                <h3 className="font-bold text-sm text-slate-950">AI Writing Companion: Preserve My Voice</h3>
+                <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
+                  AI Writing Companion: Preserve My Voice
+                </h3>
               </div>
-              <button onClick={() => setActiveInteractiveFeature(null)} className="text-xs text-slate-400 hover:text-slate-600">✕</button>
+              <button
+                onClick={() => setActiveInteractiveFeature(null)}
+                className={`text-xs cursor-pointer ${isDark ? 'text-slate-400 hover:text-white' : 'text-[#64748B] hover:text-[#182B32]'}`}
+              >
+                ✕
+              </button>
             </div>
 
-            <p className="text-xs text-slate-600">
+            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
               Unlike generic AI rewriters that produce sterile corporate prose, "Preserve My Voice" infuses visceral sensory detail and protects authorial idiosyncrasy.
             </p>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-700 block">Synthetic Draft:</label>
+              <label className={`text-[11px] font-bold block ${isDark ? 'text-slate-300' : 'text-[#182B32]'}`}>
+                Synthetic Draft:
+              </label>
               <textarea
                 rows={2}
                 value={voiceDemoOriginal}
                 onChange={e => setVoiceDemoOriginal(e.target.value)}
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-serif"
+                className={`w-full p-2.5 rounded-xl border text-xs font-serif ${
+                  isDark
+                    ? 'border-slate-800 bg-black text-slate-200'
+                    : 'border-[#D9F5F5] bg-[#F7FFFF] text-[#182B32]'
+                }`}
               />
             </div>
 
             <button
               onClick={handleTestPreserveVoice}
-              className="w-full py-2.5 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2"
+              className={`w-full py-2.5 rounded-full font-bold text-xs flex items-center justify-center gap-2 cursor-pointer ${
+                isDark ? 'bg-slate-900 hover:bg-slate-800 text-white' : 'bg-[#26F7F7] hover:bg-[#18e6e6] text-[#182B32]'
+              }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-[#26f7db]" />
+              <Sparkles className={`w-3.5 h-3.5 ${isDark ? 'text-[#26f7db]' : 'text-[#182B32]'}`} />
               <span>Apply Preserve My Voice Restoration</span>
             </button>
 
             {voiceDemoPreserved && (
-              <div className="p-3.5 rounded-2xl bg-teal-50 border border-teal-200 text-xs text-teal-950 space-y-1">
-                <span className="font-bold text-teal-900 block">Restored Organic Cadence:</span>
+              <div
+                className={`p-3.5 rounded-2xl border text-xs space-y-1 ${
+                  isDark ? 'bg-teal-950/40 border-teal-800 text-teal-200' : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#182B32]'
+                }`}
+              >
+                <span className="font-bold text-[#008f8f] block">Restored Organic Cadence:</span>
                 <p className="font-serif italic leading-relaxed">"{voiceDemoPreserved}"</p>
-                <span className="text-[10px] text-teal-700 block pt-1">
+                <span className="text-[10px] text-emerald-600 block pt-1 font-semibold">
                   ✓ AI Writing Rate reduced from 92% to 4% (Passes 85% rule)
                 </span>
               </div>
@@ -395,31 +490,49 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
 
       {/* Feature 11 Interactive Modal: Writer's Circles */}
       {activeInteractiveFeature === 11 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b pb-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in">
+          <div
+            className={`w-full max-w-lg rounded-3xl p-6 shadow-2xl border space-y-4 ${
+              isDark ? 'bg-[#0b0c10] border-slate-800 text-slate-100' : 'bg-white border-[#D9F5F5] text-[#182B32]'
+            }`}
+          >
+            <div className={`flex items-center justify-between border-b pb-2 ${isDark ? 'border-slate-800' : 'border-[#D9F5F5]'}`}>
               <div className="flex items-center gap-2">
                 <Users2 className="w-5 h-5 text-teal-600" />
-                <h3 className="font-bold text-sm text-slate-950">Writer’s Circle Pro</h3>
+                <h3 className={`font-bold text-sm ${isDark ? 'text-white' : 'text-[#182B32]'}`}>Writer’s Circle Pro</h3>
               </div>
-              <button onClick={() => setActiveInteractiveFeature(null)} className="text-xs text-slate-400 hover:text-slate-600">✕</button>
+              <button
+                onClick={() => setActiveInteractiveFeature(null)}
+                className={`text-xs cursor-pointer ${isDark ? 'text-slate-400 hover:text-white' : 'text-[#64748B] hover:text-[#182B32]'}`}
+              >
+                ✕
+              </button>
             </div>
 
-            <p className="text-xs text-slate-600">
+            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
               Private critique groups where authors share unpublished drafts before serialized release:
             </p>
 
             <div className="space-y-3">
               {writersCircles.map(c => (
-                <div key={c.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+                <div
+                  key={c.id}
+                  className={`p-3.5 rounded-2xl border text-xs space-y-1 ${
+                    isDark ? 'bg-slate-900 border-slate-800' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+                  }`}
+                >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900 text-sm">{c.name}</span>
-                    <span className="text-[10px] bg-teal-100 text-teal-800 font-bold px-2 py-0.5 rounded">
+                    <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-[#182B32]'}`}>{c.name}</span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                        isDark ? 'bg-teal-950 text-teal-300' : 'bg-[#E9FFFF] text-[#182B32] border border-[#26F7F7]/60'
+                      }`}
+                    >
                       {c.membersCount} Members
                     </span>
                   </div>
-                  <p className="text-slate-600">{c.description}</p>
-                  <span className="text-[10px] text-slate-400 block pt-1">
+                  <p className={isDark ? 'text-slate-400' : 'text-[#64748B]'}>{c.description}</p>
+                  <span className={`text-[10px] block pt-1 ${isDark ? 'text-slate-500' : 'text-[#64748B]'}`}>
                     Salon Leader: {c.leaderName} · {c.recentActivity}
                   </span>
                 </div>
@@ -431,44 +544,70 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
 
       {/* Feature 13: Author Signature Card Modal */}
       {signatureCardOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-gradient-to-b from-[#fffef5] to-[#fffbf0] rounded-3xl p-8 shadow-2xl border-4 border-double border-amber-400/60 space-y-5 text-center relative animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in">
+          <div
+            className={`w-full max-w-md rounded-3xl p-8 shadow-2xl border-2 space-y-5 text-center relative ${
+              isDark
+                ? 'bg-gradient-to-b from-[#121008] to-[#050608] border-amber-400 text-amber-200'
+                : 'bg-white border-[#26F7F7] text-[#182B32]'
+            }`}
+          >
             <button
               onClick={() => setSignatureCardOpen(false)}
-              className="absolute top-3.5 right-3.5 text-slate-400 hover:text-slate-700"
+              className={`absolute top-3.5 right-3.5 cursor-pointer ${
+                isDark ? 'text-slate-400 hover:text-white' : 'text-[#64748B] hover:text-[#182B32]'
+              }`}
             >
               ✕
             </button>
 
             {/* Digital Wax Seal */}
-            <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-600 mx-auto flex items-center justify-center text-slate-950 font-serif font-extrabold text-xl shadow-md border-2 border-amber-200">
+            <div
+              className={`w-14 h-14 rounded-full mx-auto flex items-center justify-center font-serif font-extrabold text-xl shadow-md border-2 ${
+                isDark
+                  ? 'bg-gradient-to-tr from-amber-600 via-amber-400 to-amber-600 text-slate-950 border-amber-200'
+                  : 'bg-[#26F7F7] text-[#182B32] border-[#D9F5F5]'
+              }`}
+            >
               ⚜
             </div>
 
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-amber-800">
+              <span
+                className={`text-[10px] font-extrabold uppercase tracking-[0.2em] ${
+                  isDark ? 'text-amber-400' : 'text-[#008f8f]'
+                }`}
+              >
                 Official Digital Author Signature
               </span>
-              <h3 className="font-serif text-2xl font-bold text-slate-950">
+              <h3 className={`font-serif text-2xl font-bold ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
                 {currentUser?.displayName || 'Shreyanshu Mishra'}
               </h3>
-              <p className="text-xs text-slate-500 font-mono">
+              <p className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
                 @{currentUser?.username || 'shreyanshu'}
               </p>
             </div>
 
-            <blockquote className="p-3 bg-white/80 rounded-xl border border-amber-300/50 font-serif italic text-xs text-slate-700">
+            <blockquote
+              className={`p-3 rounded-xl border font-serif italic text-xs ${
+                isDark ? 'bg-black/60 border-amber-400/30 text-slate-300' : 'bg-[#F7FFFF] border-[#D9F5F5] text-[#182B32]'
+              }`}
+            >
               "Words are compass needles in infinite dark. Beyond the Loop."
             </blockquote>
 
-            <div className="text-[11px] text-slate-600 space-y-1">
+            <div className={`text-[11px] space-y-1 ${isDark ? 'text-slate-400' : 'text-[#64748B]'}`}>
               <p><strong>Primary Genre:</strong> Philosophical Speculative &amp; Behavioral</p>
               <p><strong>Featured Masterpiece:</strong> "The Chronosphere of Florence"</p>
             </div>
 
-            <div className="pt-2 border-t border-amber-300/40 text-[10px] font-mono text-slate-400 flex items-center justify-between">
+            <div
+              className={`pt-2 border-t text-[10px] font-mono flex items-center justify-between ${
+                isDark ? 'border-amber-400/20 text-slate-400' : 'border-[#D9F5F5] text-[#64748B]'
+              }`}
+            >
               <span>LEXORA Seal: #LX-{Math.floor(10000 + Math.random() * 90000)}</span>
-              <span className="text-teal-700 font-bold">✓ Blockchain Verified</span>
+              <span className="text-emerald-600 font-bold">✓ Blockchain Verified</span>
             </div>
           </div>
         </div>
@@ -476,23 +615,33 @@ export const PremiumHubView: React.FC<PremiumHubViewProps> = ({
 
       {/* Our Promise Footer */}
       <section className="max-w-3xl mx-auto px-6 pt-10 text-center space-y-4">
-        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200/90 space-y-4">
-          <span className="text-xs font-bold uppercase tracking-widest text-[#05c4c4]">
+        <div
+          className={`p-8 rounded-3xl border space-y-4 transition-colors ${
+            isDark ? 'bg-[#0b0c10] border-slate-800' : 'bg-[#F7FFFF] border-[#D9F5F5]'
+          }`}
+        >
+          <span className="text-xs font-bold uppercase tracking-widest text-[#00a8a8]">
             Our Solemn Promise
           </span>
-          <p className="font-serif text-lg sm:text-xl italic text-slate-800 leading-relaxed max-w-xl mx-auto">
+          <p
+            className={`font-serif text-lg sm:text-xl italic leading-relaxed max-w-xl mx-auto ${
+              isDark ? 'text-slate-300' : 'text-[#182B32]'
+            }`}
+          >
             "LEXORA Premium empowers writers to create, improve, publish, and grow while giving readers a richer, more personalised literary experience."
           </p>
           <div className="pt-2 space-y-0.5">
-            <p className="font-sans font-bold text-sm text-slate-900">
+            <p className={`font-sans font-bold text-sm ${isDark ? 'text-white' : 'text-[#182B32]'}`}>
               LEXORA — Beyond the Loop
             </p>
-            <p className="text-xs text-slate-500">
+            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-[#64748B]'}`}>
               Radiated Ink · Every Voice Has a Universe
             </p>
             <p className="font-serif italic text-sm pt-1">
-              <span className="font-light text-slate-700">CEO &amp; Founder </span>
-              <span style={{ color: '#0bb39c' }} className="font-bold">Shreyanshu Mishra</span>
+              <span className={isDark ? 'font-light text-slate-400' : 'font-light text-[#64748B]'}>
+                CEO &amp; Founder{' '}
+              </span>
+              <span className="font-bold text-[#008f8f]">Shreyanshu Mishra</span>
             </p>
           </div>
         </div>

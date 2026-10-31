@@ -86,7 +86,12 @@ interface StoryContextType {
   createStory: (storyData: Partial<Story>) => Story;
   updateStory: (id: string, updates: Partial<Story>) => void;
   deleteStory: (id: string) => void;
-  toggleFeatureStory: (id: string) => void;
+  toggleFeatureStory: (id: string, category?: string) => void;
+  setStoryFeaturing: (id: string, isFeatured: boolean, category?: string, isPinned?: boolean) => void;
+  requestStoryFeature: (storyId: string, requestedCategory: string) => { success: boolean; error?: string };
+  reviewStoryFeature: (storyId: string, approved: boolean, category?: string, remarks?: string) => void;
+  featuredHeroStoryId: string;
+  setFeaturedHeroStory: (storyId: string) => void;
   
   // Parts management
   getStoryParts: (storyId: string) => StoryPart[];
@@ -158,11 +163,38 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  // Stories
+  // Top Featured Hero Story on Home Page (Configurable by Admin)
+  const [featuredHeroStoryId, setFeaturedHeroStoryId] = useState<string>(() => {
+    try {
+      return localStorage.getItem('lexora_featured_hero_story_id') || 'story_beyond_the_loop';
+    } catch {
+      return 'story_beyond_the_loop';
+    }
+  });
+
+  const setFeaturedHeroStory = (storyId: string) => {
+    setFeaturedHeroStoryId(storyId);
+    try {
+      localStorage.setItem('lexora_featured_hero_story_id', storyId);
+    } catch {}
+  };
+
+  // Stories (Strictly only "Beyond the Loop" is preserved as requested)
   const [stories, setStories] = useState<Story[]>(() => {
     try {
-      const saved = localStorage.getItem('lexora_stories_v2');
-      return saved ? JSON.parse(saved) : SEED_STORIES;
+      const saved = localStorage.getItem('lexora_stories_v3');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const legacyMockIds = ['story_alchemist_varanasi', 'story_starlit_stanzas', 'story_echoes_obsidian', 'story_midnight_masquerade'];
+          const filtered = parsed.filter(s => s.id === 'story_beyond_the_loop' || !legacyMockIds.includes(s.id));
+          if (!filtered.some(s => s.id === 'story_beyond_the_loop')) {
+            filtered.unshift(SEED_STORIES[0]);
+          }
+          return filtered;
+        }
+      }
+      return SEED_STORIES;
     } catch {
       return SEED_STORIES;
     }
@@ -171,8 +203,17 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Parts
   const [parts, setParts] = useState<StoryPart[]>(() => {
     try {
-      const saved = localStorage.getItem('lexora_parts_v2');
-      return saved ? JSON.parse(saved) : SEED_PARTS;
+      const saved = localStorage.getItem('lexora_parts_v3');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const legacyMockStoryIds = ['story_alchemist_varanasi', 'story_starlit_stanzas', 'story_echoes_obsidian', 'story_midnight_masquerade'];
+          const filtered = parsed.filter(p => !legacyMockStoryIds.includes(p.storyId));
+          const hasBeyondParts = filtered.some(p => p.storyId === 'story_beyond_the_loop');
+          return hasBeyondParts ? filtered : [...SEED_PARTS, ...filtered];
+        }
+      }
+      return SEED_PARTS;
     } catch {
       return SEED_PARTS;
     }
@@ -181,7 +222,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Reviews
   const [reviews, setReviews] = useState<RatingReview[]>(() => {
     try {
-      const saved = localStorage.getItem('lexora_reviews_v2');
+      const saved = localStorage.getItem('lexora_reviews_v3');
       return saved ? JSON.parse(saved) : SEED_REVIEWS;
     } catch {
       return SEED_REVIEWS;
@@ -191,24 +232,24 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Saved Stories (Library)
   const [savedStoryIds, setSavedStoryIds] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('lexora_saved_stories_v2');
-      return saved ? JSON.parse(saved) : ['story_atomic_habits', 'story_psychology_of_money'];
+      const saved = localStorage.getItem('lexora_saved_stories_v3');
+      return saved ? JSON.parse(saved) : ['story_beyond_the_loop'];
     } catch {
-      return ['story_atomic_habits', 'story_psychology_of_money'];
+      return ['story_beyond_the_loop'];
     }
   });
 
   // Reading progress
   const [readingProgress, setReadingProgress] = useState<Record<string, ReadingProgress>>(() => {
     try {
-      const saved = localStorage.getItem('lexora_reading_progress_v2');
+      const saved = localStorage.getItem('lexora_reading_progress_v3');
       return saved ? JSON.parse(saved) : {
-        story_atomic_habits: {
-          storyId: 'story_atomic_habits',
-          lastPartId: 'part_atomic_1',
+        story_beyond_the_loop: {
+          storyId: 'story_beyond_the_loop',
+          lastPartId: 'part_beyond_the_loop_1',
           lastPartNumber: 1,
-          progressPercent: 30,
-          updatedAt: '2026-10-21T18:00:00.000Z',
+          progressPercent: 20,
+          updatedAt: '2026-10-24T18:00:00.000Z',
         },
       };
     } catch {
@@ -250,9 +291,13 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [certificates, setCertificates] = useState<WriterCertificate[]>(() => {
     try {
       const saved = localStorage.getItem('lexora_certificates');
-      return saved ? JSON.parse(saved) : [SEED_CERTIFICATE];
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed.flat() : parsed;
+      }
+      return Array.isArray(SEED_CERTIFICATE) ? SEED_CERTIFICATE : [SEED_CERTIFICATE];
     } catch {
-      return [SEED_CERTIFICATE];
+      return Array.isArray(SEED_CERTIFICATE) ? SEED_CERTIFICATE : [SEED_CERTIFICATE];
     }
   });
 
@@ -435,6 +480,16 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSavedStoryIds(prev =>
       prev.includes(storyId) ? prev.filter(id => id !== storyId) : [...prev, storyId]
     );
+    if (currentUser?.id) {
+      fetch('/api/stories/bookmark', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+        },
+        body: JSON.stringify({ storyId }),
+      }).catch(err => console.warn('Could not sync bookmark:', err));
+    }
   };
 
   const isStorySaved = (storyId: string) => savedStoryIds.includes(storyId);
@@ -476,6 +531,8 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       title: storyData.title || 'Untitled Serial',
       synopsis: storyData.synopsis || 'An original serialized story on LEXORA.',
       coverImage: storyData.coverImage || 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=800&q=80',
+      coverFit: storyData.coverFit || 'contain',
+      coverPosition: storyData.coverPosition || 'center',
       authorId: author.id,
       authorName: author.displayName,
       authorUsername: author.username,
@@ -515,6 +572,20 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setParts(prev => [...prev, part1]);
 
+    // Sync to backend database
+    fetch('/api/stories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': author.id,
+        'x-user-email': (author as any).email || '',
+      },
+      body: JSON.stringify({
+        ...newStory,
+        content: part1.content,
+      }),
+    }).catch(err => console.warn('Could not sync story to backend:', err));
+
     return newStory;
   };
 
@@ -526,16 +597,122 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return updated;
       })
     );
+
+    if (currentUser?.id) {
+      fetch(`/api/stories/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': currentUser.id,
+          'x-user-email': currentUser.email,
+        },
+        body: JSON.stringify(updates),
+      }).catch(err => console.warn('Could not sync story update to backend:', err));
+    }
   };
 
   const deleteStory = (id: string) => {
     setStories(prev => prev.filter(s => s.id !== id));
     setParts(prev => prev.filter(p => p.storyId !== id));
+
+    if (currentUser?.id) {
+      fetch(`/api/stories/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': currentUser.id,
+          'x-user-email': currentUser.email,
+        },
+      }).catch(err => console.warn('Could not sync story deletion to backend:', err));
+    }
   };
 
-  const toggleFeatureStory = (id: string) => {
+  const toggleFeatureStory = (id: string, category?: string) => {
     setStories(prev =>
-      prev.map(s => (s.id === id ? { ...s, isFeatured: !s.isFeatured } : s))
+      prev.map(s => {
+        if (s.id !== id) return s;
+        const nextState = !s.isFeatured;
+        return {
+          ...s,
+          isFeatured: nextState,
+          featuredCategory: nextState ? (category || s.featuredCategory || s.category || 'Featured Stories') : s.featuredCategory,
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+  };
+
+  const setStoryFeaturing = (id: string, isFeatured: boolean, category?: string, isPinned?: boolean) => {
+    setStories(prev =>
+      prev.map(s => {
+        if (s.id !== id) return s;
+        return {
+          ...s,
+          isFeatured,
+          featuredCategory: isFeatured ? (category || s.featuredCategory || s.category || 'Featured Stories') : s.featuredCategory,
+          isPinned: isPinned !== undefined ? isPinned : s.isPinned,
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+  };
+
+  const requestStoryFeature = (storyId: string, requestedCategory: string): { success: boolean; error?: string } => {
+    if (!currentUser) {
+      return { success: false, error: 'Please sign in to request a homepage feature.' };
+    }
+    const story = stories.find(s => s.id === storyId);
+    if (!story) {
+      return { success: false, error: 'Story not found.' };
+    }
+    if (story.authorId !== currentUser.id && story.authorUsername?.toLowerCase() !== currentUser.username?.toLowerCase() && !isFounder) {
+      return { success: false, error: 'You can only request homepage featuring for your own published stories.' };
+    }
+    if (story.status !== 'published') {
+      return { success: false, error: 'Only published stories can be submitted for homepage featuring.' };
+    }
+
+    setStories(prev =>
+      prev.map(s => {
+        if (s.id !== storyId) return s;
+        return {
+          ...s,
+          featureRequest: {
+            requestedAt: new Date().toISOString(),
+            requestedCategory: requestedCategory || s.category || 'Featured Stories',
+            status: 'pending',
+          },
+          updatedAt: new Date().toISOString(),
+        };
+      })
+    );
+
+    return { success: true };
+  };
+
+  const reviewStoryFeature = (storyId: string, approved: boolean, category?: string, remarks?: string) => {
+    if (!isFounder) {
+      console.warn('Unauthorized attempt to review story feature request.');
+      return;
+    }
+
+    setStories(prev =>
+      prev.map(s => {
+        if (s.id !== storyId) return s;
+        return {
+          ...s,
+          isFeatured: approved,
+          featuredCategory: approved ? (category || s.featureRequest?.requestedCategory || s.category || 'Featured Stories') : s.featuredCategory,
+          featureRequest: s.featureRequest
+            ? {
+                ...s.featureRequest,
+                status: approved ? 'approved' : 'rejected',
+                reviewedAt: new Date().toISOString(),
+                reviewerRemarks: remarks,
+              }
+            : undefined,
+          updatedAt: new Date().toISOString(),
+        };
+      })
     );
   };
 
@@ -1010,7 +1187,7 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const newSub: ChallengeSubmission = {
       id: `sub_${Date.now()}`,
-      challengeId: data.challengeId || activeChallenge.id,
+      challengeId: data.challengeId || activeChallenge?.id || 'challenge_general',
       storyId: data.storyId,
       storyTitle: targetStory?.title || 'Untitled',
       storySynopsis: targetStory?.synopsis || '',
@@ -1306,6 +1483,11 @@ export const StoryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateStory,
         deleteStory,
         toggleFeatureStory,
+        setStoryFeaturing,
+        requestStoryFeature,
+        reviewStoryFeature,
+        featuredHeroStoryId,
+        setFeaturedHeroStory,
 
         getStoryParts,
         createPart,

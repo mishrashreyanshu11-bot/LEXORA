@@ -70,18 +70,14 @@ export const IntroModal: React.FC<IntroModalProps> = ({ isOpen, onClose }) => {
             LEXORA
           </h1>
 
-          {/* Subtitle: RADIATED INK with Gold Hairline Rules */}
+          {/* Subtitle: BEYOND THE LOOP! with Gold Hairline Rules */}
           <div className="flex items-center justify-center gap-3">
             <span className="w-12 sm:w-16 h-px bg-gradient-to-r from-transparent via-[#e5b95a]/80 to-transparent" />
             <span className="font-serif text-[11px] sm:text-xs font-semibold tracking-[0.35em] uppercase text-[#e5b95a] drop-shadow-sm">
-              Radiated Ink
+              Beyond the Loop!
             </span>
             <span className="w-12 sm:w-16 h-px bg-gradient-to-r from-transparent via-[#e5b95a]/80 to-transparent" />
           </div>
-
-          <p className="font-serif italic text-sm sm:text-base text-amber-100/80 pt-1 tracking-wide">
-            Beyond the Loop.
-          </p>
         </div>
 
         {/* Literature Font Attribution: CEO and Founder Shreyanshu Mishra */}
